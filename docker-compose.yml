@@ -53,17 +53,8 @@ services:
     depends_on:
       - backend
 
-  mcp-server:
-    build: ./mcp-server
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    environment:
-      BACKEND_URL: http://backend:8000
-    depends_on:
-      - backend
-    command: python server.py
+  # mcp-server uses stdio transport — it is NOT a Docker service.
+  # Claude Code launches it as a subprocess. See .claude.json for config.
 
   watcher:
     build: ./backend
