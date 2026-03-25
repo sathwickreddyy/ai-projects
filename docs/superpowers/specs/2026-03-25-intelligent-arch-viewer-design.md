@@ -285,6 +285,8 @@ Prompt construction layers:
 
 Context token optimization: send compact symbol type list to Claude, not the full instruction set.
 
+Default model: `claude-sonnet-4-20250514` for all AI calls. Configurable via environment variable `CLAUDE_MODEL`.
+
 ### Auth
 
 First-launch gate:
@@ -460,7 +462,7 @@ Rules:
 3. MCP server (4 tools)
 4. Backend AI engine (Claude API/CLI bridge)
 5. Backend skill manager (file read/write)
-6. Backend API routes (sessions, diagrams, AI, skills, symbols, auth)
+6. Backend API routes (sessions, diagrams, AI, skills, symbols, auth) + WebSocket endpoint for review streaming
 7. Frontend config + types + stores
 8. Frontend canvas (SVG renderer, symbols, ports)
 9. Frontend layout engine (ELK.js) + edge routing
