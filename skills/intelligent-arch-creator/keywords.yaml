@@ -1,0 +1,6 @@
+mappings:
+  - subskill: order-processing
+    match_any:
+      - [kafka, order]
+      - [event-driven, order]
+      - [saga, order]
