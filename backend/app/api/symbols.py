@@ -6,7 +6,14 @@ router = APIRouter(prefix="/api/symbols", tags=["symbols"])
 
 
 def _get_registry() -> SymbolRegistry:
-    return SymbolRegistry(settings.skills_dir + "/intelligent-arch-creator/symbols.yaml")
+    import os
+    path = os.path.join(settings.skills_dir, "intelligent-arch-creator", "symbols.yaml")
+    if not os.path.isabs(path):
+        # Resolve relative to project root (parent of backend/)
+        here = os.path.dirname(os.path.abspath(__file__))  # backend/app/api/
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(here)))  # up 3 levels
+        path = os.path.join(project_root, path)
+    return SymbolRegistry(path)
 
 
 @router.get("/")
