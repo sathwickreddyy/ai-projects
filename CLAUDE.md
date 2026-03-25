@@ -2,164 +2,94 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What this is
+## What This Is
 
-**Intelligent Arch Viewer** — An MCP-backed architecture visualization app that generates, reviews, and refines system diagrams through Claude's analysis of codebases.
-
-Four components:
-1. **MCP server** (`mcp-server/`) — Exposes `check_app_health` and `push_architecture` tools to Claude. Runs as stdio process.
-2. **Backend** (`backend/`) — FastAPI app. Stores sessions/diagrams, serves symbols.yaml, handles Claude streaming via CLI subprocess or direct API.
-3. **Frontend** (`frontend/`) — React + TypeScript + ReactFlow canvas. SSE streaming for AI suggestions. Dark theme with animated SVG symbols.
-4. **Skill files** (`skills/intelligent-arch-creator/`) — Claude skill package that uses the MCP tools to analyze repos and push diagrams.
+**Intelligent Arch Viewer** — an MCP-backed architecture visualization app. A Claude Code skill (`intelligent-arch-creator`) analyzes codebases, generates structured architecture JSON, and pushes it to this app for interactive visualization with proper SVG infrastructure symbols, AI-powered review, and skill learning.
 
 ## Commands
 
 ```bash
-# Start everything (backend on :18000, frontend on :13000)
+# Start everything (backend :18000, frontend :13000)
 docker compose up --build
 
-# Backend only (hot-reload enabled)
+# Backend only (hot-reload)
 docker compose up backend
 
-# Frontend only (Vite dev server, hot-reload enabled)
+# Frontend only (Vite dev)
 docker compose up frontend
 
-# Run backend tests
-cd backend && python -m pytest tests/ -v
+# Backend tests (34 passing)
+cd backend && ./venv/bin/python -m pytest tests/ -v
 
-# MCP server (stdio mode, NOT Docker)
-# Used by Claude desktop app via .mcp.json config
-python mcp-server/server.py
-
-# Frontend type check
+# Frontend type check (0 errors)
 cd frontend && npx tsc --noEmit
+
+# MCP server (stdio, NOT Docker — launched by Claude Code)
+python mcp-server/server.py
 ```
 
 ## Architecture
 
-### Backend (FastAPI, port 18000)
-- **SQLite** by default (`data/arch_viewer.db`). Schema auto-created on startup.
-- **Dual auth mode**: `CLAUDE_AUTH_MODE=cli` (uses `claude` CLI subprocess) or `api` (uses Anthropic SDK with `ANTHROPIC_API_KEY`).
-- **Routes**:
-  - `POST /api/sessions` — Create session with diagram
-  - `GET /api/sessions/:id` — Retrieve session
-  - `GET /api/symbols` — Return symbols.yaml (canonical symbol instruction set)
-  - `POST /api/ai/review` — Claude review of diagram (SSE stream)
-  - `POST /api/ai/suggestions` — Claude suggestions (SSE stream)
-  - `WS /api/ws/:session_id` — WebSocket for live updates
-- **Services**:
-  - `claude_service.py` — Three-driver routing: CLI subprocess, Anthropic API, or AWS Bedrock
-  - `scanner.py` — Placeholder for future filesystem scanning
-  - `watcher.py` — Filesystem watcher (watchdog + asyncio bridge)
+### Four Components
 
-### Frontend (React + TypeScript, port 13000)
-- **ReactFlow** canvas with custom node/edge rendering
-- **Zustand** for global state (nodes, edges, flows, preferences)
-- **SSE streaming** via `fetch` + `ReadableStream` (no polling)
-- **Dark theme**: `bg-zinc-900`, neon accents for symbols
-- **6 connection ports per node**: top, top-right, right, bottom, bottom-left, left
-- **Components**:
-  - `ArchCanvas.tsx` — Main canvas, drag-drop from palette
-  - `CustomNode.tsx` — SVG symbol renderer (reads symbols.yaml shape specs)
-  - `ComponentPalette.tsx` — Draggable symbol library
-  - `ReviewPanel.tsx` — 4-step modal (collect constraints → analyze → review → adapt)
-  - `RightPanel.tsx` — Suggestions, follow-up, adapt tabs
+1. **MCP Server** (`mcp-server/server.py`) — stdio transport, FastMCP. 5 tools: `check_app_health`, `push_architecture`, `pull_latest_state`, `list_sessions`, `get_skill_tree`. Zero logic — pure HTTP pass-through to backend at `http://localhost:18000`.
 
-### MCP Server (stdio)
-- **FastMCP** framework (`mcp.server.fastmcp`)
-- Two tools:
-  - `check_app_health()` — Health check before pushing
-  - `push_architecture(payload)` — POST session to backend
-- Connects to backend at `http://localhost:18000` (configurable via `BACKEND_URL`)
+2. **Backend** (`backend/`) — FastAPI, Python 3.12, SQLite (aiosqlite). Port 18000 (host) → 8000 (container).
+   - `app/core/config.py` — Pydantic Settings. Two auth modes: `cli` (Claude CLI subprocess) and `api` (Anthropic SDK). No hardcoded model versions.
+   - `app/db/session.py` — SQLAlchemy async models: Session, Diagram, Review, SkillAdaptation, AuthConfig. Schema auto-created on startup.
+   - `app/services/ai_engine.py` — Dual-driver Claude integration (CLI subprocess or Anthropic SDK). 5 methods: review, stream_review, answer_followup, generate_adaptation, preview_impact.
+   - `app/services/symbol_registry.py` — Parses `symbols.yaml`, provides palette items and compact type list for prompts.
+   - `app/services/skill_manager.py` — Reads/writes skill files on disk. NEVER auto-saves — explicit approval required.
+   - `app/api/` — 7 route groups: sessions, diagrams, ai, ws, skills, symbols, auth.
 
-### Skill files (`skills/intelligent-arch-creator/`)
-- **symbols.yaml** — Canonical symbol instruction set. Defines shapes (horizontal_cylinder, container_box, diamond_stack, hexagon, rounded_rect, circle, cloud), internal elements (partition_lane, message_block, key_pattern_text, etc.), 6-port layout, color palette, and symbol library (kafka_broker, kafka_topic, redis_cache, postgres_db, api_service, load_balancer, client_actor, external_service).
-- **skill.md** — Claude skill instructions for using the MCP tools
-- **keywords.yaml** — Keyword hints for symbol detection
-- **subskills/** — Specialized analysis patterns
+3. **Frontend** (`frontend/`) — React 18, TypeScript strict, Vite 5, Tailwind CSS 3, Zustand, ELK.js. Port 13000.
+   - Custom SVG canvas (not React Flow) with pan/zoom, 7 symbol shapes, 6-port connections, orthogonal edge routing.
+   - 3-column layout: palette (260px) | canvas (flex) | right panel (320px).
+   - Right panel: Suggestions | Follow-up | Adapt tabs.
+   - Review modal: 4-step flow (score, diff, suggestions, skill adaptation).
+   - Auth gate on first launch (CLI detection + API key fallback).
 
-## Key conventions
+4. **Skill Files** (`skills/intelligent-arch-creator/`) — `skill.md` (instructions), `symbols.yaml` (shared symbol contract), `keywords.yaml` (subskill index), `subskills/` (learned patterns).
 
-### Symbol instruction set
-All symbols defined in `skills/intelligent-arch-creator/symbols.yaml`. Both the skill and the frontend read from this file. No hardcoded symbol definitions elsewhere.
+### Key Conventions
 
-**Shapes**: horizontal_cylinder (Kafka topics, databases), container_box (brokers, clusters), diamond_stack (Redis cache), hexagon (API services), rounded_rect (load balancers, gateways), circle (clients, users), cloud (external services).
+- **Symbol types** defined ONLY in `symbols.yaml` — both skill and app read this file. Adding a new symbol: edit YAML only, no code changes.
+- **Node positions**: 0.0-1.0 fractions in DB. Canvas multiplies by 1200x700 for pixels.
+- **6 connection ports** per node: top, top-right, right, bottom, bottom-left, left.
+- **Edges always visible** — rendered above background, below nodes. Orthogonal routing avoids node overlaps.
+- **Auth**: CLI uses latest model (no --model flag). API uses CLAUDE_MODEL env var (empty = SDK default).
+- **Skill adaptation**: app proposes → user reviews in Adapt tab → explicitly approves → writes to disk.
+- **Docker prerequisite**: skill calls `check_app_health()` before `push_architecture()`.
 
-**Internal elements**: partition_lane, message_block, key_pattern_text, endpoint_text, row_line, animated_message, subscriber_pulse, status_indicator.
+### Dark Theme Palette
 
-**Props schema**: Each symbol defines `props_schema` with typed fields (string, integer, enum, string_array, object types like topic_def/channel_def).
+| Token | Hex |
+|-------|-----|
+| bg | `#0a0a0f` |
+| surface | `#0f1117` |
+| panel | `#161b27` |
+| border | `#1e2430` |
+| text | `#c9d1e0` |
+| muted | `#6b7280` |
+| accent | `#2563eb` |
 
-### Node positions
-Stored as **0.0-1.0 fractions** in the database. Converted to pixels on canvas based on viewport dimensions. This makes diagrams resolution-independent.
+### Category Colors
 
-### 6 connection ports
-Every node has exactly 6 ports:
-- `top` — center-top
-- `top-right` — right edge, 25% from top
-- `right` — center-right
-- `bottom` — center-bottom
-- `bottom-left` — left edge, 75% from top
-- `left` — center-left
+messaging `#ef4444`, database `#3b82f6`, cache `#ef4444`, api `#059669`, infrastructure `#0ea5e9`, client `#8b5cf6`, external `#6b7280`
 
-Edges specify `source_port` and `target_port` for explicit routing.
+## Project Memory
 
-### Dark theme colors
-Background: `bg-zinc-900` (#18181b)
-Symbol categories use neon palette:
-- **messaging**: `#ef4444` (red) — Kafka, Redis Pub/Sub
-- **database**: `#3b82f6` (blue) — PostgreSQL
-- **cache**: `#ef4444` (red) — Redis cache
-- **api**: `#059669` (green) — FastAPI, services
-- **infrastructure**: `#0ea5e9` (cyan) — load balancers
-- **client**: `#8b5cf6` (purple) — browsers, users
-- **external**: `#6b7280` (gray) — third-party services
+`.claude/` directory (project-level) with split files for minimal token consumption:
+- `INDEX.md` — pointer file, always loaded (~20 lines)
+- `decisions/` — one file per architectural decision (11 decisions logged)
+- `design/` — architecture, canvas, skill system, symbol system
+- `CONSTRAINTS.md` — 10 hard rules
 
-### Auth modes
-Three modes controlled by `CLAUDE_AUTH_MODE` env var:
-1. **cli** (default) — Uses `claude` CLI subprocess. No API key required. Best for Pro subscription users.
-2. **api** — Uses Anthropic SDK with `ANTHROPIC_API_KEY`. Direct API calls.
-3. **bedrock** — AWS Bedrock via boto3 (future use case, code ready but not in default .env.example).
+## MCP Configuration
 
-CLI mode always uses latest model from subscription. API mode uses `CLAUDE_MODEL` env var (defaults to SDK's latest if empty).
+`.claude.json` (project-level) configures the `arch-viewer` MCP server with stdio transport.
 
-## Port assignments
+## Specs & Plans
 
-- **Backend**: Host `18000` → Container `8000`
-- **Frontend**: Host `13000` → Container `13000`
-- **MCP server**: stdio (no port, runs as subprocess)
-
-## Project memory
-
-The `.claude/` directory tracks project decisions:
-- `MEMORY.md` — Decision log (append-only)
-- `APPROACHES.md` — Alternative approaches considered
-- `CONSTRAINTS.md` — Hard constraints (10 rules)
-- `PROGRESS.md` — File checklist
-- `REVISIONS.md` — Change tracking
-
-## Development notes
-
-- **No hardcoded model versions** — CLI uses latest, API uses `CLAUDE_MODEL` env var
-- **App never auto-saves to skill files** — explicit approval required
-- **Skill must check app health before push** — `check_app_health()` call required
-- **All edges always visible** — never hidden behind nodes (z-index ordering)
-- **SSE/WebSocket for streaming** — no polling
-- **TypeScript strict mode** — no implicit any
-- **SQLite default, PostgreSQL optional** — DB path via `DATABASE_PATH` env var
-
-## Testing
-
-Backend tests use pytest with async fixtures:
-- `tests/conftest.py` — Shared fixtures (test client, in-memory DB)
-- `tests/test_health.py` — Health endpoint
-- `tests/test_db.py` — Session CRUD
-
-Frontend type checking via `npx tsc --noEmit` (no runtime tests yet).
-
-## Files to edit when adding new symbols
-
-1. **skills/intelligent-arch-creator/symbols.yaml** — Add symbol definition
-2. **skills/intelligent-arch-creator/keywords.yaml** — Add keyword hints
-3. **Frontend automatically picks up changes** — reads symbols.yaml from backend `/api/symbols` endpoint
-
-No code changes needed in frontend components — symbol rendering is data-driven via the YAML spec.
+- Design spec: `docs/superpowers/specs/2026-03-25-intelligent-arch-viewer-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-03-25-intelligent-arch-viewer.md`
