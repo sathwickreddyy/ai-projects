@@ -12,3 +12,4 @@ build/
 .DS_Store
 postgres_data/
 .superpowers/
+*.db
