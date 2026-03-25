@@ -26,16 +26,14 @@ services:
       DATABASE_URL: postgresql+asyncpg://arch:arch_secret@postgres:5432/arch_platform
       PROJECTS_DIR: /projects
       PYTHONUNBUFFERED: "1"
-      CLAUDE_AUTH_MODE: ${CLAUDE_AUTH_MODE:-cli}
+      CLAUDE_AUTH_MODE: ${CLAUDE_AUTH_MODE:-api}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-anthropic.claude-sonnet-4-5-v1}
-      PATH: /root/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     volumes:
       - ./backend:/app
       - ./projects:/projects:ro
-      - ${HOME}/.npm-global:/root/.npm-global:ro
     depends_on:
       postgres:
         condition: service_healthy
