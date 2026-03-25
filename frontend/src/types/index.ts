@@ -58,13 +58,27 @@ export interface PaletteItem {
 
 export interface ReviewFeedback {
   summary: string
+  score?: number
   issues: Array<{
     severity: string
+    component?: string
     message: string
-    node_id?: string
+    fix?: string
   }>
-  suggestions: string[]
-  score?: number
+  missing_components: Array<{
+    name: string
+    reason: string
+    type: string
+    symbol_type: string
+  }>
+  follow_up_questions: Array<{
+    question: string
+    options: string[]
+  }>
+  suggested_adaptations: Array<{
+    decision: string
+    reason: string
+  }>
 }
 
 export interface DiagramDiff {
