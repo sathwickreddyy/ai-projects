@@ -1,0 +1,296 @@
+meta:
+  version: "1.0"
+
+  shapes:
+    horizontal_cylinder:
+      description: "Cylinder lying on its side. Used for storage/buffer concepts (topics, queues, channels, databases). Left cap is an ellipse, body is a rectangle, right cap is an ellipse."
+      renders_as: "ellipse-left + rect-body + ellipse-right"
+      default_aspect_ratio: "3:1"
+      supports_children: false
+      supports_internal_elements: true
+
+    container_box:
+      description: "Rectangular box that holds child symbols inside it. Used for grouping (brokers containing topics, clusters containing nodes). Has a header bar with label."
+      renders_as: "rounded-rect with header-bar"
+      default_aspect_ratio: "auto"
+      supports_children: true
+      child_layout_options: [vertical_stack, horizontal_stack, grid]
+      supports_internal_elements: false
+
+    diamond_stack:
+      description: "Diamond/rhombus shape with layered 3D effect. Used for key-value stores (Redis, Memcached). Shows depth via stacked layers."
+      renders_as: "polygon-diamond with offset layers beneath"
+      default_aspect_ratio: "1.5:1"
+      supports_children: false
+      supports_internal_elements: true
+
+    hexagon:
+      description: "Six-sided shape. Used for services/APIs — things that process requests. Conveys 'active processor' semantics."
+      renders_as: "polygon-6-sides"
+      default_aspect_ratio: "1.2:1"
+      supports_children: false
+      supports_internal_elements: true
+
+    rounded_rect:
+      description: "Simple rounded rectangle. Used for generic services, load balancers, gateways, and any component that doesn't have a specialized shape."
+      renders_as: "rect with border-radius"
+      default_aspect_ratio: "2:1"
+      supports_children: false
+      supports_internal_elements: true
+
+    circle:
+      description: "Circle shape. Used for clients, users, external actors — entry points to the system."
+      renders_as: "circle"
+      default_aspect_ratio: "1:1"
+      supports_children: false
+      supports_internal_elements: true
+
+    cloud:
+      description: "Cloud outline. Used for external services, third-party APIs, CDNs — things outside the system boundary."
+      renders_as: "cloud-path"
+      default_aspect_ratio: "1.5:1"
+      supports_children: false
+      supports_internal_elements: true
+
+  internal_elements:
+    partition_lane:
+      description: "Vertical divider lanes inside a cylinder. Each lane represents a partition, queue lane, or segment."
+      visual: "thin vertical rectangles side-by-side inside the shape body"
+      placement_options: [horizontal_stack_inside]
+      repeat_from: "integer prop (e.g., partitions: 3 draws 3 lanes)"
+
+    message_block:
+      description: "Small colored rectangles representing messages/items. Stack from bottom upward inside partition lanes. Opacity decreases toward top."
+      visual: "small filled rects stacked bottom-to-top"
+      placement_options: [bottom_fill_in_partition]
+      repeat_from: "integer prop (e.g., messages_hint: 5 draws ~5 blocks)"
+
+    key_pattern_text:
+      description: "Monospace text lines showing key patterns, table names, or route paths."
+      visual: "monospace text lines with decreasing opacity"
+      placement_options: [vertical_text_list]
+      repeat_from: "string array prop"
+
+    endpoint_text:
+      description: "Small text labels for API endpoints or method signatures."
+      visual: "small monospace labels stacked vertically"
+      placement_options: [vertical_text_list]
+      repeat_from: "string array prop"
+
+    row_line:
+      description: "Horizontal divider line inside a cylinder representing table rows or data segments."
+      visual: "dashed horizontal lines evenly spaced"
+      placement_options: [horizontal_dividers]
+      repeat_from: "string array prop"
+
+    animated_message:
+      description: "Small block that animates from left-to-right through the shape body."
+      visual: "small rect with CSS/SVG translate animation"
+      placement_options: [flow_through]
+      repeat_from: "none — always shows 1-2 animated blocks"
+
+    subscriber_pulse:
+      description: "Pulsing circle at the right end-cap of a cylinder. Represents active subscribers/consumers."
+      visual: "circle with scale+opacity pulse animation"
+      placement_options: [end_cap]
+      repeat_from: "integer prop (e.g., subscribers: 2 draws 2 pulses)"
+
+    status_indicator:
+      description: "Small colored dot in corner. Green=healthy, yellow=degraded, red=down."
+      visual: "small circle, top-right corner"
+      placement_options: [corner_badge]
+      repeat_from: "none — driven by status prop"
+
+  ports:
+    definition:
+      - { id: top, position: "center-top" }
+      - { id: top-right, position: "right edge, 25% from top" }
+      - { id: right, position: "center-right" }
+      - { id: bottom, position: "center-bottom" }
+      - { id: bottom-left, position: "left edge, 75% from top" }
+      - { id: left, position: "center-left" }
+    note: "All symbols inherit these 6 ports."
+
+  animations:
+    flow_dash:
+      description: "Dashed stroke that animates along the edge path."
+      applies_to: edges
+    pulse_glow:
+      description: "Periodic glow/pulse on a node."
+      applies_to: nodes
+    flow_through:
+      description: "Element translates from one end to other."
+      applies_to: internal_elements
+
+  color_palette:
+    messaging: { primary: "#ef4444", border: "#f87171", bg: "#1a0808" }
+    database: { primary: "#3b82f6", border: "#60a5fa", bg: "#0a0a1a" }
+    cache: { primary: "#ef4444", border: "#f87171", bg: "#1a0808" }
+    api: { primary: "#059669", border: "#34d399", bg: "#0a0f0a" }
+    infrastructure: { primary: "#0ea5e9", border: "#38bdf8", bg: "#0a0a14" }
+    client: { primary: "#8b5cf6", border: "#a78bfa", bg: "#0f0a1a" }
+    external: { primary: "#6b7280", border: "#9ca3af", bg: "#0f0f0f" }
+
+  prop_types:
+    string: { type: string, description: "Plain text value" }
+    integer: { type: integer, description: "Whole number" }
+    enum: { type: enum, description: "One of a fixed set of values. Define values array." }
+    string_array: { type: array, items: string, description: "List of text values" }
+    topic_def:
+      type: object
+      description: "Kafka topic definition for use inside a broker"
+      fields:
+        name: { type: string, required: true }
+        partitions: { type: integer, default: 3 }
+        color: { type: string, default: "inherit" }
+    channel_def:
+      type: object
+      description: "Pub/sub channel definition"
+      fields:
+        name: { type: string, required: true }
+        subscribers: { type: integer, default: 1 }
+        color: { type: string, default: "inherit" }
+
+symbols:
+
+  kafka_broker:
+    category: messaging
+    label: "Kafka Broker"
+    shape: container_box
+    keywords: [kafka, confluent, broker, event-bus]
+    children:
+      type: kafka_topic
+      layout: vertical_stack
+    props_schema:
+      name: { type: string, required: true, description: "Broker display name" }
+      topics:
+        type: array
+        items: topic_def
+        description: "List of topics inside this broker"
+
+  kafka_topic:
+    category: messaging
+    label: "Kafka Topic"
+    shape: horizontal_cylinder
+    keywords: [topic, partition, consumer, producer, offset]
+    internal_elements:
+      - type: partition_lane
+        from_prop: partitions
+      - type: message_block
+        from_prop: messages_hint
+    props_schema:
+      name: { type: string, required: true, description: "Topic name" }
+      partitions: { type: integer, default: 3, description: "Number of partition lanes to render" }
+      messages_hint: { type: integer, default: 0, description: "Approximate message count for visual density" }
+      consumer_groups: { type: string_array, description: "Consumer group names" }
+
+  redis_cache:
+    category: cache
+    label: "Redis Cache"
+    shape: diamond_stack
+    keywords: [redis, cache, session, rate-limit, key-value]
+    internal_elements:
+      - type: key_pattern_text
+        from_prop: key_patterns
+    props_schema:
+      name: { type: string, required: true, description: "Instance name" }
+      key_patterns: { type: string_array, description: "Key patterns shown inside" }
+
+  redis_pubsub:
+    category: messaging
+    label: "Redis Pub/Sub"
+    shape: container_box
+    keywords: [pubsub, redis, channel, subscribe, publish, notifications]
+    children:
+      type: pubsub_channel
+      layout: vertical_stack
+    props_schema:
+      name: { type: string, required: true, description: "Pub/Sub instance name" }
+      channels:
+        type: array
+        items: channel_def
+        description: "List of channels"
+
+  pubsub_channel:
+    category: messaging
+    label: "Pub/Sub Channel"
+    shape: horizontal_cylinder
+    keywords: [channel, subscribe]
+    internal_elements:
+      - type: animated_message
+      - type: subscriber_pulse
+        from_prop: subscribers
+    props_schema:
+      name: { type: string, required: true, description: "Channel name" }
+      subscribers: { type: integer, default: 1, description: "Number of active subscribers" }
+
+  postgres_db:
+    category: database
+    label: "PostgreSQL"
+    shape: horizontal_cylinder
+    keywords: [postgres, postgresql, sql, relational, asyncpg]
+    internal_elements:
+      - type: row_line
+        from_prop: tables
+      - type: key_pattern_text
+        from_prop: tables
+    props_schema:
+      name: { type: string, required: true, description: "Instance name" }
+      tables: { type: string_array, description: "Table names shown as rows" }
+      role: { type: enum, values: [primary, replica, standby], default: primary, description: "Visual badge" }
+
+  api_service:
+    category: api
+    label: "API Service"
+    shape: hexagon
+    keywords: [fastapi, flask, express, api, rest, http, service, uvicorn]
+    internal_elements:
+      - type: endpoint_text
+        from_prop: endpoints
+    props_schema:
+      name: { type: string, required: true, description: "Service name" }
+      framework: { type: string, description: "Framework name shown as subtitle" }
+      endpoints: { type: string_array, description: "Route labels" }
+
+  load_balancer:
+    category: infrastructure
+    label: "Load Balancer"
+    shape: rounded_rect
+    keywords: [load-balancer, nginx, haproxy, alb, elb, ingress]
+    internal_elements:
+      - type: status_indicator
+    props_schema:
+      name: { type: string, required: true, description: "LB name" }
+      algorithm: { type: enum, values: [round-robin, least-conn, ip-hash], default: round-robin }
+
+  client_actor:
+    category: client
+    label: "Client / User"
+    shape: circle
+    keywords: [client, user, browser, mobile, actor, frontend]
+    props_schema:
+      name: { type: string, required: true, description: "Actor name" }
+      type: { type: enum, values: [browser, mobile, cli, iot], default: browser }
+
+  external_service:
+    category: external
+    label: "External Service"
+    shape: cloud
+    keywords: [external, third-party, saas, cdn, payment, auth0]
+    props_schema:
+      name: { type: string, required: true, description: "Service name" }
+      provider: { type: string, description: "Provider name shown as subtitle" }
+
+  # --- Adding a new symbol example ---
+  # rabbitmq_exchange:
+  #   category: messaging
+  #   label: "RabbitMQ Exchange"
+  #   shape: rounded_rect
+  #   keywords: [rabbitmq, amqp, exchange, routing-key]
+  #   internal_elements:
+  #     - type: key_pattern_text
+  #       from_prop: routing_keys
+  #   props_schema:
+  #     name: { type: string, required: true }
+  #     exchange_type: { type: enum, values: [direct, topic, fanout, headers], default: direct }
+  #     routing_keys: { type: string_array }
