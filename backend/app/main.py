@@ -4,6 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.session import init_db
+from app.api.sessions import router as sessions_router
+from app.api.skills import router as skills_router
+from app.api.symbols import router as symbols_router
+from app.api.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(sessions_router)
+app.include_router(skills_router)
+app.include_router(symbols_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")
