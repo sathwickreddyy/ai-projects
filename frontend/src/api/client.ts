@@ -57,6 +57,9 @@ export const generateAdaptation = (sessionId: string) =>
 export const getAuthStatus = () =>
   api.get<{ mode: string; cli_available: boolean; has_api_key: boolean }>('/api/auth/status').then((r) => r.data)
 
+export const configureAuth = (body: { mode: 'cli' | 'api'; api_key?: string }) =>
+  api.post('/api/auth/configure', body).then((r) => r.data)
+
 // SSE streaming review (POST, not EventSource)
 export const streamReview = (
   diagramId: string,
