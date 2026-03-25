@@ -7,7 +7,7 @@ from mcp.server.fastmcp import FastMCP
 
 load_dotenv()
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:18000")
 
 mcp = FastMCP("arch-platform")
 

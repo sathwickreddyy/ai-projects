@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     bedrock_model_id: str = "anthropic.claude-sonnet-4-5-v1"
 
     # Postgres
-    database_url: str = "postgresql+asyncpg://arch:arch_secret@postgres:5432/arch_platform"
+    database_url: str = "postgresql+asyncpg://arch:arch_secret@postgres:15432/arch_platform"
     projects_dir: str = "/projects"
 
     # App
