@@ -285,7 +285,10 @@ Prompt construction layers:
 
 Context token optimization: send compact symbol type list to Claude, not the full instruction set.
 
-Default model: `claude-sonnet-4-20250514` for all AI calls. Configurable via environment variable `CLAUDE_MODEL`.
+Model selection: The app should NOT hardcode a specific model version (e.g., `claude-sonnet-4-20250514`). Instead:
+- CLI mode: omit `--model` flag — Claude CLI automatically uses the latest model available on the user's subscription
+- API mode: default to `claude-sonnet-4-6-20250514` but resolve via a `CLAUDE_MODEL` env var. The skill and app documentation should note that this should be updated when newer models release
+- The backend should log which model is being used at startup for visibility
 
 ### Auth
 
@@ -298,8 +301,9 @@ First-launch gate:
 
 ## 7. MCP Server
 
-Thin bridge, 4 tools:
+Thin bridge, 5 tools:
 
+- `check_app_health()` → GET /health → returns status or error message. The skill MUST call this before `push_architecture`. If unhealthy, return a message telling the user to run `docker compose up`.
 - `push_architecture(payload)` → POST /api/sessions → returns session URL
 - `pull_latest_state(session_id)` → GET /api/sessions/{id}/latest → returns modified architecture + diff
 - `list_sessions()` → GET /api/sessions → returns session list
@@ -328,7 +332,14 @@ skills/
 
 ### Main Skill (skill.md)
 
-Instructs Claude Code to: scan project → check keywords.yaml for matching subskill → read symbols.yaml for available types → generate context envelope JSON → call `push_architecture()` MCP tool → return session URL.
+Instructs Claude Code to:
+1. **Check app is running** — call health endpoint (`GET http://localhost:18000/health`). If not reachable, tell the user: "The Intelligent Arch Viewer app needs to be running. Please start it with `docker compose up` in the project directory, then try again." Do NOT proceed until the app is healthy.
+2. Scan project files → detect technology stack
+3. Check keywords.yaml for matching subskill → load it if matched
+4. Read symbols.yaml for available symbol types
+5. Generate context envelope JSON
+6. Call `push_architecture()` MCP tool → sends to viewer app
+7. Return the session URL to the user
 
 ### Keywords Index (keywords.yaml)
 
