@@ -1,16 +1,15 @@
 from typing import Literal, Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     claude_auth_mode: Literal["cli", "api"] = "cli"
     anthropic_api_key: str = ""
     claude_model: str = ""  # empty = latest for CLI, SDK default for API
     database_path: str = "./data/arch_viewer.db"
     skills_dir: str = "./skills"
-
-    class Config:
-        env_file = ".env"
 
     def validate_auth(self):
         if self.claude_auth_mode == "api" and not self.anthropic_api_key:
