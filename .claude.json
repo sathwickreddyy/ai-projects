@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "arch-viewer": {
+      "command": "python",
+      "args": ["mcp-server/server.py"],
+      "env": {
+        "BACKEND_URL": "http://localhost:18000"
+      }
+    }
+  }
+}
