@@ -1,70 +1,15 @@
-// Context envelope — what the skill sends to the app
-export interface ContextEnvelope {
-  context: {
-    project_name: string
-    project_path?: string
-    detected_stack: string[]
-    user_intent?: string
-    skill_used: string
-    skill_version?: string
-    skill_path?: string
-    conversation_summary?: string
-    preferences?: Record<string, unknown>
-  }
-  architecture: ArchitecturePayload
-}
-
-export interface ArchitecturePayload {
-  title: string
-  mode: string
-  nodes: ArchNode[]
-  edges: ArchEdge[]
-  flows: ArchFlow[]
-}
-
-export type PortId = 'top' | 'top-right' | 'right' | 'bottom' | 'bottom-left' | 'left'
-
-export interface ArchNode {
-  id: string
-  symbol_type: string
-  name: string
-  props: Record<string, unknown>
-  position: { x: number; y: number }
-  layer: number
-}
-
-export interface ArchEdge {
-  id: string
-  source: string
-  source_port?: PortId
-  target: string
-  target_port?: PortId
-  label?: string
-  style?: 'solid' | 'animated' | 'dotted'
-  color?: string
-}
-
-export interface ArchFlow {
-  id: string
-  name: string
-  steps: string[]
-  color: string
-}
-
-// Session from backend
+// Core domain types
 export interface Session {
   id: string
   title: string
-  context: ContextEnvelope['context']
-  status: 'active' | 'archived'
+  status: string
+  context: Record<string, unknown>
   created_at: string
   updated_at: string
 }
 
-// Diagram version
 export interface Diagram {
   id: string
-  session_id: string
   version: number
   nodes: ArchNode[]
   edges: ArchEdge[]
@@ -74,91 +19,90 @@ export interface Diagram {
   created_at: string
 }
 
-// AI review feedback
-export interface ReviewIssue {
-  severity: 'critical' | 'warning' | 'suggestion'
-  component: string
-  message: string
-  fix: string
-}
-
-export interface MissingComponent {
-  name: string
-  reason: string
-  type: string
-  symbol_type: string
-}
-
-export interface FollowUpQuestion {
-  question: string
-  options: string[]
-}
-
-export interface SuggestedAdaptation {
-  decision: string
-  reason: string
-}
-
-export interface ReviewFeedback {
-  score: number
-  summary: string
-  issues: ReviewIssue[]
-  missing_components: MissingComponent[]
-  follow_up_questions: FollowUpQuestion[]
-  suggested_adaptations: SuggestedAdaptation[]
-}
-
-// Skill system
-export interface SubskillInfo {
-  name: string
-  file: string
-  version: number
-  learned_from: number
-  content: string
-}
-
-export interface KeywordMapping {
-  subskill: string
-  match_any: string[][]
-}
-
-export interface SkillTree {
-  name: string
-  subskills: SubskillInfo[]
-  keywords: KeywordMapping[]
-}
-
-export interface SkillAdaptation {
+export interface ArchNode {
   id: string
-  session_id: string
-  target_subskill: string
-  decisions: string[]
-  keywords: string[]
-  status: 'pending' | 'approved' | 'discarded'
+  symbol_type: string
+  name: string
+  position: { x: number; y: number }
+  props?: Record<string, unknown>
+  children?: ArchNode[]
 }
 
-// Diff types for review mode
-export interface DiagramDiff {
-  added_nodes: Array<{ id: string; name: string }>
-  removed_nodes: Array<{ id: string; name: string }>
-  modified_nodes: Array<{ id: string; changes: string[] }>
-  added_edges: Array<{ id: string }>
-  removed_edges: Array<{ id: string }>
+export interface ArchEdge {
+  id: string
+  source: string
+  target: string
+  label?: string
+  style?: string
 }
 
-// Palette item from backend
+export interface ArchFlow {
+  id: string
+  name: string
+  steps: string[]
+  color?: string
+}
+
 export interface PaletteItem {
   symbol_type: string
   label: string
   category: string
-  shape: string
-  keywords: string[]
-  color: string
-  border_color: string
-  props_schema: Record<string, unknown>
+  description?: string
 }
 
-// App state
+export interface ReviewFeedback {
+  summary: string
+  issues: Array<{
+    severity: string
+    message: string
+    node_id?: string
+  }>
+  suggestions: string[]
+  score?: number
+}
+
+export interface DiagramDiff {
+  added_nodes: Array<{ id: string; name?: string }>
+  removed_nodes: Array<{ id: string; name?: string }>
+  modified_nodes: Array<{
+    id: string
+    changes: Record<string, { old: unknown; new: unknown }>
+  }>
+  added_edges: Array<{ id: string; source?: string; target?: string }>
+  removed_edges: Array<{ id: string; source?: string; target?: string }>
+}
+
+// Skill system types
+export interface SkillTree {
+  skills: Record<string, Skill>
+  meta?: {
+    version: string
+    last_updated: string
+  }
+}
+
+export interface Skill {
+  name: string
+  description: string
+  subskills: Record<string, SubSkill>
+}
+
+export interface SubSkill {
+  name: string
+  keywords: string[]
+  decisions: string[]
+  adaptations?: Adaptation[]
+}
+
+export interface Adaptation {
+  id: string
+  timestamp: string
+  decisions: string[]
+  keywords: string[]
+  approved: boolean
+}
+
+// Zustand store state
 export interface AppState {
   // Session
   currentSession: Session | null
@@ -190,7 +134,7 @@ export interface AppState {
   rightPanelTab: 'suggestions' | 'followup' | 'adapt'
 
   // Auth
-  authMode: 'cli' | 'api' | null
+  authMode: string | null
   authConfigured: boolean
 
   // Actions
@@ -212,7 +156,7 @@ export interface AppState {
   resetReview: () => void
   setSkillTree: (tree: SkillTree | null) => void
   setIsGenerating: (val: boolean) => void
-  setRightPanelTab: (tab: AppState['rightPanelTab']) => void
-  setAuthMode: (mode: 'cli' | 'api' | null) => void
+  setRightPanelTab: (tab: 'suggestions' | 'followup' | 'adapt') => void
+  setAuthMode: (mode: string | null) => void
   setAuthConfigured: (val: boolean) => void
 }

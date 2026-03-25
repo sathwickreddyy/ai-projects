@@ -1,24 +1,25 @@
-// Types derived from the symbol instruction set (symbols.yaml)
-
-export interface ShapeMeta {
-  description: string
-  renders_as: string
-  default_aspect_ratio: string
-  supports_children: boolean
-  supports_internal_elements: boolean
-  child_layout_options?: string[]
+// Symbol registry types
+export interface SymbolRegistry {
+  symbols: Record<string, SymbolDefinition>
+  meta: SymbolMeta
 }
 
-export interface InternalElementMeta {
-  description: string
-  visual: string
-  placement_options: string[]
-  repeat_from: string
+export interface SymbolDefinition {
+  label: string
+  category: string
+  shape: string
+  internal_elements?: string[]
+  children?: {
+    type: string
+    layout: string
+  }
+  props_schema?: Record<string, unknown>
 }
 
-export interface PortDefinition {
-  id: string
-  position: string
+export interface SymbolMeta {
+  version: string
+  color_palette: Record<string, ColorPalette>
+  shapes: Record<string, ShapeCapability>
 }
 
 export interface ColorPalette {
@@ -27,41 +28,13 @@ export interface ColorPalette {
   bg: string
 }
 
-export interface SymbolDefinition {
-  category: string
-  label: string
-  shape: string
-  keywords: string[]
-  children?: {
-    type: string
-    layout: string
-  }
-  internal_elements?: Array<{
-    type: string
-    from_prop?: string
-  }>
-  props_schema: Record<string, unknown>
+export interface ShapeCapability {
+  supports_children: boolean
+  default_width?: number
+  default_height?: number
 }
 
-export interface SymbolMeta {
-  version: string
-  shapes: Record<string, ShapeMeta>
-  internal_elements: Record<string, InternalElementMeta>
-  ports: {
-    definition: PortDefinition[]
-    note: string
-  }
-  animations: Record<string, { description: string; applies_to: string }>
-  color_palette: Record<string, ColorPalette>
-  prop_types: Record<string, unknown>
-}
-
-export interface SymbolRegistry {
-  meta: SymbolMeta
-  symbols: Record<string, SymbolDefinition>
-}
-
-// Parsed render-ready structure used by SVG components
+// Renderable symbol (parsed from registry)
 export interface RenderableSymbol {
   symbolType: string
   label: string
@@ -70,12 +43,9 @@ export interface RenderableSymbol {
   color: string
   borderColor: string
   bgColor: string
-  internalElements: Array<{
-    type: string
-    fromProp?: string
-  }>
+  internalElements: string[]
   supportsChildren: boolean
   childType?: string
   childLayout?: string
-  propsSchema: Record<string, unknown>
+  propsSchema?: Record<string, unknown>
 }
