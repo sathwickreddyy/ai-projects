@@ -14,7 +14,7 @@ Approach: **Monolith Web App + MCP Bridge**
 
 Four components:
 
-- **MCP Server** (stdio, thin bridge) — receives architecture payloads from Claude Code, forwards to backend. 4 tools: `push_architecture`, `pull_latest_state`, `list_sessions`, `get_skill_tree`.
+- **MCP Server** (stdio, thin bridge) — receives architecture payloads from Claude Code, forwards to backend. 5 tools: `check_app_health`, `push_architecture`, `pull_latest_state`, `list_sessions`, `get_skill_tree`.
 - **Backend** (FastAPI, Python 3.12) — session management, AI engine (Claude API/CLI), skill file management, symbol registry, layout computation.
 - **Frontend** (React 18, TypeScript strict, Tailwind CSS 3) — custom SVG canvas with pan/zoom, symbol rendering, drag-drop palette, review modal, skill adaptation panels.
 - **Database** — SQLite for single-user local deployments. PostgreSQL as optional upgrade.
