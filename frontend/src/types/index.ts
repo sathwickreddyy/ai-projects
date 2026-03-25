@@ -28,12 +28,18 @@ export interface ArchNode {
   children?: ArchNode[]
 }
 
+export type PortId = 'top' | 'top-right' | 'right' | 'bottom' | 'bottom-left' | 'left'
+
 export interface ArchEdge {
   id: string
   source: string
   target: string
   label?: string
   style?: string
+  color?: string
+  source_port?: string
+  target_port?: string
+  props?: Record<string, unknown>
 }
 
 export interface ArchFlow {
