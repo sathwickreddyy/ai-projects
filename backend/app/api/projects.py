@@ -47,7 +47,7 @@ async def list_projects(db: AsyncSession = Depends(get_db)):
 
 @router.post("/")
 async def create_project(body: ProjectCreate, db: AsyncSession = Depends(get_db)):
-    project_path = str(Path(settings.PROJECTS_DIR) / body.path)
+    project_path = str(Path(settings.projects_dir) / body.path)
     if not Path(project_path).is_dir():
         raise HTTPException(status_code=400, detail=f"Path does not exist: {project_path}")
 
@@ -74,7 +74,7 @@ async def create_project(body: ProjectCreate, db: AsyncSession = Depends(get_db)
 
 @router.get("/volume/list")
 async def list_volume_dirs():
-    base = Path(settings.PROJECTS_DIR)
+    base = Path(settings.projects_dir)
     if not base.is_dir():
         return []
     return [

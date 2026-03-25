@@ -57,7 +57,7 @@ class ProjectWatcherHandler(FileSystemEventHandler):
 
 
 def run() -> None:
-    projects_dir = settings.PROJECTS_DIR
+    projects_dir = settings.projects_dir
     if not os.path.isdir(projects_dir):
         logger.warning("PROJECTS_DIR %s does not exist, watcher idle", projects_dir)
         return

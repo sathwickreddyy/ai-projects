@@ -103,7 +103,7 @@ class ChangeLog(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("NOW()"))
 
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+engine = create_async_engine(settings.database_url, echo=False)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
