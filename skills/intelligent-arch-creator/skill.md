@@ -53,9 +53,36 @@ Read files in strict priority order. Stop at the scope limit.
 | P4 | Deep | Infrastructure client code | Kafka producer/consumer files, Redis client wrappers, DB migration files, queue handlers |
 | P5 | Deep | README/docs | `README.md`, `docs/architecture.md`, `CLAUDE.md` |
 
-**Always skip:** `node_modules/`, `.git/`, `__pycache__/`, `venv/`, `dist/`, `build/`, `vendor/`, `.next/`, test files, generated code, static assets, lock files (`package-lock.json`, `poetry.lock`).
+### How to Search Efficiently
+
+**DO NOT use broad globs like `**/*` or `**/*.md`** — these return hundreds of files from node_modules and waste tokens.
+
+Instead, search for SPECIFIC files by name:
+
+```
+# P0: Look for these exact files in the project root
+docker-compose.yml, docker-compose.yaml, Dockerfile, .env.example
+
+# P1: Look in root only
+package.json, requirements.txt, go.mod, Cargo.toml, pom.xml, build.gradle, pyproject.toml
+
+# P2: Look in common entrypoint locations
+backend/main.py, backend/app.py, src/main.ts, src/index.ts, cmd/main.go, main.py, app.py, server.js
+
+# P3: Read config files found in P0/P1 (e.g., .env.example already read)
+
+# P4: Search for specific patterns in backend/ or src/ only (NOT in node_modules)
+backend/**/*.py, src/**/*.go (limit to backend source directories)
+
+# P5: Look for README.md and CLAUDE.md in root only
+README.md, CLAUDE.md, docs/architecture.md
+```
+
+**NEVER glob `**/*` or `**/*.md` from the project root.** Always scope searches to specific directories (`backend/`, `src/`, `cmd/`) and specific file names.
 
 **Read limit:** first 3000 characters per file. If a file is larger, the first 3000 chars is enough.
+
+**Do NOT read symbols.yaml** — the quick reference table at the bottom of this file has everything you need. Only read symbols.yaml if you need to look up a prop_schema not listed in the table.
 
 **Early stop rule:** if after P1 the entire stack is already clear (e.g., docker-compose.yml lists all services, ports, images, and environment variables), skip remaining priorities and go to Step 4. Don't read more files just because the budget allows.
 
@@ -127,15 +154,18 @@ The viewer decides whether to render internal elements at the current zoom level
 
 ## Step 5: Load Subskills
 
-Call the MCP tool to get the latest skill tree from your **local** installed skill:
+Call the MCP tool with your detected stack to get matching subskills:
 
 ```
-get_skill_tree()
+get_skill_tree(detected_stack="kafka,redis,fastapi,postgres")
 ```
 
-This reads your project's `.claude/commands/intelligent-arch-creator/` directory and returns the current keywords mappings and all subskill content. The local skill evolves over time — each time you approve an adaptation in the viewer, it writes new subskills and keyword mappings here.
+Pass the comma-separated detected technologies. The tool returns:
+- **Matched subskills** with full content (decisions, patterns, overrides) — apply these
+- **Non-matching subskills** as summaries only (saves tokens)
+- If no subskills match, generate from first principles — that's fine
 
-For each mapping in the response, check if the detected stack matches:
+For matched subskills, check the keyword logic:
 
 ```yaml
 # keywords format in the response

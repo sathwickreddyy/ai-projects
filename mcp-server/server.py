@@ -130,27 +130,21 @@ async def list_sessions() -> str:
 
 
 @mcp.tool()
-async def get_skill_tree() -> str:
-    """Show the current skill structure with subskills and keywords.
-    Reads from the LOCAL project's installed skill (not the backend).
-    Subskills evolve over time as the user approves adaptations in the viewer."""
+async def get_skill_tree(detected_stack: str = "") -> str:
+    """Get subskills matching the detected technology stack.
+    Only returns FULL content for subskills whose keywords match.
+    Non-matching subskills are listed as summaries only (saves tokens).
+
+    Args:
+        detected_stack: Comma-separated detected technologies (e.g., 'kafka,redis,fastapi,postgres').
+                       If empty, returns all subskill summaries without full content.
+    """
     local_skill = _find_local_skill()
     if not local_skill:
-        return (
-            "Skill not installed locally. Call install_skill() first.\n"
-            "Falling back to standard skill from backend..."
-        )
+        return "Skill not installed locally. Call install_skill() first."
 
     skill_dir = Path(local_skill)
-
-    # Read skill name from skill.md frontmatter
-    name = SKILL_NAME
-    skill_md = skill_dir / "skill.md"
-    if skill_md.exists():
-        content = skill_md.read_text()
-        match = re.search(r"name:\s*(.+)", content)
-        if match:
-            name = match.group(1).strip()
+    stack_items = [s.strip().lower() for s in detected_stack.split(",") if s.strip()] if detected_stack else []
 
     # Read keywords.yaml
     keywords = []
@@ -159,7 +153,16 @@ async def get_skill_tree() -> str:
         kw_data = yaml.safe_load(kw_file.read_text()) or {}
         keywords = kw_data.get("mappings", [])
 
-    # Read subskills
+    # Determine which subskills match the detected stack
+    matched_subskills = set()
+    if stack_items:
+        for mapping in keywords:
+            for group in mapping.get("match_any", []):
+                if all(kw.lower() in stack_items for kw in group):
+                    matched_subskills.add(mapping["subskill"])
+                    break
+
+    # Read subskills — full content only for matches
     subskills = []
     sub_dir = skill_dir / "subskills"
     if sub_dir.is_dir():
@@ -177,20 +180,26 @@ async def get_skill_tree() -> str:
             match_learned = re.search(r"learned_from:\s*(\d+)", content)
             if match_learned:
                 learned_from = int(match_learned.group(1))
-            subskills.append({
+
+            entry = {
                 "name": sub_name,
                 "file": f.name,
                 "version": version,
                 "learned_from": learned_from,
-                "content": content,
-            })
+                "matched": sub_name in matched_subskills,
+            }
+            if sub_name in matched_subskills:
+                entry["content"] = content  # full content only for matches
+            subskills.append(entry)
 
-    return json.dumps({
-        "name": name,
-        "path": str(skill_dir),
-        "subskills": subskills,
-        "keywords": keywords,
-    }, indent=2)
+    result = {"subskills": subskills, "keywords": keywords}
+    if matched_subskills:
+        result["active_subskills"] = list(matched_subskills)
+        result["note"] = "Apply decisions from matched subskills to your architecture."
+    else:
+        result["note"] = "No subskills match this stack. Generate from first principles."
+
+    return json.dumps(result, indent=2)
 
 
 @mcp.tool()
