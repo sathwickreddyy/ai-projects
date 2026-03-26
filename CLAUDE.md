@@ -93,3 +93,62 @@ messaging `#ef4444`, database `#3b82f6`, cache `#ef4444`, api `#059669`, infrast
 
 - Design spec: `docs/superpowers/specs/2026-03-25-intelligent-arch-viewer-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-03-25-intelligent-arch-viewer.md`
+
+---
+
+## Build Summary (2026-03-25)
+
+### What Was Built
+
+Complete clean-slate rebuild of the project. Previous implementation (standalone web platform with PostgreSQL, React Flow, emoji-based nodes) was deleted entirely. New system built from scratch across 65 commits:
+
+- **18 Python backend files** — FastAPI app with 7 API route groups, 3 services (AI engine, symbol registry, skill manager), 5 SQLAlchemy models, WebSocket endpoint
+- **52 TypeScript frontend files** — Custom SVG canvas, 7 shape components + 8 internal element renderers, ELK.js layout, 6-port connection system, 3-tab right panel, 4-step review modal, auth gate
+- **1 MCP server** — 5 tools (health check, push, pull, list, skill tree)
+- **4 skill files** — skill.md, symbols.yaml (meta-schema + 10 symbol definitions), keywords.yaml, 1 sample subskill
+- **34 backend tests passing**, 0 TypeScript errors
+
+### Key Decisions Made
+
+| # | Decision | Why |
+|---|----------|-----|
+| 001 | Clean slate rebuild | Old arch fundamentally different — no code to reuse |
+| 002 | Monolith + MCP bridge | Single deployable unit; MCP as thin pass-through, not microservices |
+| 003 | Custom SVG, not React Flow | React Flow too opinionated for 7 shape types with internal elements |
+| 004 | symbols.yaml shared contract | One file drives both skill generation and app rendering |
+| 005 | CLI or API key auth | No OAuth registration needed; no hardcoded model versions |
+| 006 | Skill/subskill learning | Explicit approval required; user targets specific subskill manually |
+| 007 | 4-step review modal | Full-screen focused flow beats cramped inline panel |
+| 008 | Proper infra symbols | Horizontal cylinders stacked vertically, not emojis |
+| 009 | Docker prerequisite | Skill checks health before pushing — prevents silent failures |
+| 010 | SQLite default | PostgreSQL deferred to v2; single-user local dev is the primary use case |
+| 011 | ELK.js layout | Layered algorithm for stage diagrams, force-directed for mental maps |
+
+Full decision details: `.claude/decisions/001-011`
+
+### What's NOT Done Yet (Next Steps)
+
+**Immediate (v1 polish):**
+- End-to-end smoke test with `docker compose up` — built but not run yet
+- Wire the RightPanel placeholder in AppShell to the actual RightPanel component (may already be done by subagent)
+- Test MCP push_architecture flow from Claude Code to the running app
+- Verify auth gate flow in the browser (CLI detection → API key fallback)
+
+**Short-term (v1.1):**
+- Edge routing obstacle avoidance — current routing does L/Z bends but doesn't actively avoid crossing other nodes
+- Diagram persistence — PATCH endpoint creates new versions but frontend doesn't debounce saves on drag yet
+- Export functionality — PNG (html-to-image on canvas wrapper), Mermaid, draw.io XML
+- WebSocket review streaming in frontend — useAI hook is wired to SSE, WS client exists but not integrated into review flow
+
+**Medium-term (v2):**
+- PostgreSQL support for team/multi-user deployments
+- Real-time collaboration via WebSocket (multiple users editing same diagram)
+- More symbol types (RabbitMQ, MongoDB, Cassandra, gRPC, GraphQL, Kubernetes, etc.)
+- Symbol detail zoom levels — hide internal elements at <50% zoom for performance
+- Subskill auto-detection — suggest matching subskills based on detected stack without user intervention
+- Diagram history timeline — visual diff slider between versions
+
+**Long-term:**
+- Global skill sharing — move proven subskills from project-level to global
+- Diagram templates — pre-built starting points for common architectures
+- Code generation — generate infrastructure-as-code from diagram (Terraform, Docker Compose, K8s manifests)
