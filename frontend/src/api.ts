@@ -8,8 +8,8 @@ const api = axios.create({
 export const getSession = (id: string) =>
   api.get<ArchSession>(`/api/sessions/${id}`).then((r) => r.data)
 
-export const patchSession = (id: string, data: Partial<Pick<ArchSession, 'title' | 'data'>>) =>
-  api.patch<ArchSession>(`/api/sessions/${id}`, data).then((r) => r.data)
+export const patchSession = (id: string, body: { title?: string; data?: Record<string, unknown> }) =>
+  api.patch<ArchSession>(`/api/sessions/${id}`, body).then((r) => r.data)
 
 export const listSessions = () =>
   api.get<ArchSession[]>('/api/sessions').then((r) => r.data)
