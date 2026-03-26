@@ -53,38 +53,60 @@ Read files in strict priority order. Stop at the scope limit.
 | P4 | Deep | Infrastructure client code | Kafka producer/consumer files, Redis client wrappers, DB migration files, queue handlers |
 | P5 | Deep | README/docs | `README.md`, `docs/architecture.md`, `CLAUDE.md` |
 
-### How to Search Efficiently
+### CRITICAL: How to Scan Files
 
-**DO NOT use broad globs like `**/*` or `**/*.md`** — these return hundreds of files from node_modules and waste tokens.
+**NEVER use broad searches.** These waste thousands of tokens on junk:
+- `**/*` ← returns node_modules, __pycache__, .git — NEVER DO THIS
+- `**/*.md` ← returns 80+ LICENSE files from node_modules — NEVER DO THIS
+- `**/*.py` from project root ← includes venv, tests — avoid
 
-Instead, search for SPECIFIC files by name:
+**Instead, read SPECIFIC files directly.** You already know what to look for:
 
+**P0 — read these files directly (no search needed):**
 ```
-# P0: Look for these exact files in the project root
-docker-compose.yml, docker-compose.yaml, Dockerfile, .env.example
-
-# P1: Look in root only
-package.json, requirements.txt, go.mod, Cargo.toml, pom.xml, build.gradle, pyproject.toml
-
-# P2: Look in common entrypoint locations
-backend/main.py, backend/app.py, src/main.ts, src/index.ts, cmd/main.go, main.py, app.py, server.js
-
-# P3: Read config files found in P0/P1 (e.g., .env.example already read)
-
-# P4: Search for specific patterns in backend/ or src/ only (NOT in node_modules)
-backend/**/*.py, src/**/*.go (limit to backend source directories)
-
-# P5: Look for README.md and CLAUDE.md in root only
-README.md, CLAUDE.md, docs/architecture.md
+Read: docker-compose.yml
+Read: Dockerfile (or backend/Dockerfile)
+Read: .env.example
 ```
 
-**NEVER glob `**/*` or `**/*.md` from the project root.** Always scope searches to specific directories (`backend/`, `src/`, `cmd/`) and specific file names.
+**P1 — read these files directly:**
+```
+Read: package.json (or frontend/package.json)
+Read: requirements.txt (or backend/requirements.txt)
+Read: go.mod OR Cargo.toml OR pom.xml (whichever exists)
+```
 
-**Read limit:** first 3000 characters per file. If a file is larger, the first 3000 chars is enough.
+**P2 — read entrypoints (check which exist first):**
+```
+Read: backend/main.py OR main.py OR app.py OR src/main.ts OR cmd/main.go
+```
 
-**Do NOT read symbols.yaml** — the quick reference table at the bottom of this file has everything you need. Only read symbols.yaml if you need to look up a prop_schema not listed in the table.
+**P3 — read config files found in P0 (e.g., .env.example already read, look for config.py):**
+```
+Read: backend/config.py OR backend/app/core/config.py OR src/config.ts
+```
 
-**Early stop rule:** if after P1 the entire stack is already clear (e.g., docker-compose.yml lists all services, ports, images, and environment variables), skip remaining priorities and go to Step 4. Don't read more files just because the budget allows.
+**P4 — read ONLY backend source files that reveal infrastructure:**
+```
+List: backend/routers/ OR backend/api/ (to see what routes exist)
+Read: files that sound like infrastructure (kafka_*.py, redis_*.py, db.py)
+List: backend/clients/ OR backend/services/ (if they exist)
+```
+
+**P5 — read ONLY root docs:**
+```
+Read: README.md
+Read: CLAUDE.md (if exists)
+```
+
+**Rules:**
+- Read files DIRECTLY by path — don't search/glob first
+- If a file doesn't exist, that's fine — skip it, don't search for alternatives
+- NEVER read from node_modules/, venv/, .git/, __pycache__/, dist/, build/
+- Max 3000 chars per file (first 3000 is enough)
+- Do NOT read symbols.yaml — the quick reference table below has everything you need
+
+**Early stop:** If docker-compose.yml lists all services, ports, images, and env vars clearly, skip P3-P5 and go straight to Step 4.
 
 ---
 
