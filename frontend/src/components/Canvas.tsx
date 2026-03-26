@@ -19,10 +19,11 @@ import '@xyflow/react/dist/style.css'
 
 import { nodeTypes } from './nodes'
 import { Palette } from './Palette'
+import { BottomPanel } from './BottomPanel'
 import { getSession, patchSession } from '../api'
 import type { ArchSession } from '../types'
 
-function CanvasInner() {
+function CanvasInner({ session: parentSession }: { session: ArchSession | null }) {
   const { sessionId } = useParams<{ sessionId: string }>()
   const [error, setError] = useState<string | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
@@ -133,10 +134,11 @@ function CanvasInner() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-48px)]">
-      <Palette />
-      <div className="flex-1" ref={reactFlowWrapper}>
-        <ReactFlow
+    <div className="flex flex-col h-[calc(100vh-48px)]">
+      <div className="flex flex-1 min-h-0">
+        <Palette />
+        <div className="flex-1" ref={reactFlowWrapper}>
+          <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -166,7 +168,9 @@ function CanvasInner() {
             maskColor="rgba(0,0,0,0.5)"
           />
         </ReactFlow>
+        </div>
       </div>
+      <BottomPanel session={parentSession} nodeCount={nodes.length} edgeCount={edges.length} />
     </div>
   )
 }
@@ -203,7 +207,7 @@ export function Canvas() {
       </div>
 
       <ReactFlowProvider>
-        <CanvasInner />
+        <CanvasInner session={session} />
       </ReactFlowProvider>
     </div>
   )

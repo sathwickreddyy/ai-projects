@@ -87,6 +87,31 @@ export function Palette() {
           )
         })}
       </div>
+
+      {/* Connection guide */}
+      <div className="p-3 border-t border-[#1e2430]">
+        <span className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">
+          Connections
+        </span>
+        <div className="mt-2 space-y-1.5 text-[10px] text-[#6b7280] leading-relaxed">
+          <div className="flex items-start gap-1.5">
+            <span className="text-[#34d399] mt-0.5">+</span>
+            <span>Drag from a <span className="text-[#c9d1e0]">dot</span> on one node to a dot on another</span>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <span className="text-[#f87171] mt-0.5">-</span>
+            <span>Click edge + <span className="text-[#c9d1e0]">Backspace</span> to delete</span>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <span className="text-[#60a5fa] mt-0.5">~</span>
+            <span>Drag edge endpoint to <span className="text-[#c9d1e0]">reconnect</span></span>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <span className="text-[#a78bfa] mt-0.5">*</span>
+            <span>Click node + drag <span className="text-[#c9d1e0]">corners</span> to resize</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
