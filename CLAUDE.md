@@ -98,8 +98,8 @@ mcp-server/venv/bin/pip install -r mcp-server/requirements.txt
 `.claude.json` uses the absolute path to the venv's Python so the server works from any project directory. To add it to another project (run from inside that project directory):
 ```bash
 claude mcp add arch-viewer --scope project --transport stdio \
-  -- /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python \
-  /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py
+  -- /Users/sathwick/my-office/learning-projects/intelligent-arch-viewer/mcp-server/venv/bin/python \
+  /Users/sathwick/my-office/learning-projects/intelligent-arch-viewer/mcp-server/server.py
 ```
 
 **Why stdio (not SSE)?** The MCP server is a host-side subprocess. The backend is what calls Claude. In `cli` auth mode the backend must also run on the host (the `claude` binary can't run in a Linux Docker container). In `api` mode the backend can stay in Docker — stdio is still the simplest transport.

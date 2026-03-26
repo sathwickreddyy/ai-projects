@@ -70,8 +70,8 @@ mcp-server/venv/bin/pip install -r mcp-server/requirements.txt
 claude mcp add arch-viewer \
   --scope project \
   --transport stdio \
-  -- /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python \
-  /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py
+  -- /Users/sathwick/my-office/learning-projects/intelligent-arch-viewer/mcp-server/venv/bin/python \
+  /Users/sathwick/my-office/learning-projects/intelligent-arch-viewer/mcp-server/server.py
 ```
 
 Repeat this once per project you want to push diagrams from.
