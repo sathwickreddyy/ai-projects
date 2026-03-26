@@ -32,7 +32,7 @@ python mcp-server/server.py
 
 ### Four Components
 
-1. **MCP Server** (`mcp-server/server.py`) — stdio transport, FastMCP. 5 tools: `check_app_health`, `push_architecture`, `pull_latest_state`, `list_sessions`, `get_skill_tree`. Zero logic — pure HTTP pass-through to backend at `http://localhost:18000`.
+1. **MCP Server** (`mcp-server/server.py`) — stdio transport, FastMCP. 6 tools: `check_app_health`, `push_architecture`, `pull_latest_state`, `list_sessions`, `get_skill_tree`, `install_skill`. Zero logic — pure HTTP pass-through to backend at `http://localhost:18000`.
 
 2. **Backend** (`backend/`) — FastAPI, Python 3.12, SQLite (aiosqlite). Port 18000 (host) → 8000 (container).
    - `app/core/config.py` — Pydantic Settings. Two auth modes: `cli` (Claude CLI subprocess) and `api` (Anthropic SDK). No hardcoded model versions.

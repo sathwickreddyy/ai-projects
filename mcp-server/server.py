@@ -19,13 +19,24 @@ def _client() -> httpx.AsyncClient:
 
 @mcp.tool()
 async def check_app_health() -> str:
-    """Check if the Intelligent Arch Viewer app is running. MUST call this before push_architecture."""
+    """Check if the Intelligent Arch Viewer app is running. MUST call this before push_architecture.
+    Also checks if the skill is installed locally."""
     try:
         async with _client() as client:
             resp = await client.get("/health")
             resp.raise_for_status()
             data = resp.json()
-            return f"App is running. Auth mode: {data.get('auth_mode', 'unknown')}"
+
+        # Check if skill is installed in current project
+        skill_installed = os.path.isdir(os.path.join(os.getcwd(), ".claude", "commands", "intelligent-arch-creator"))
+        user_skill = os.path.isdir(os.path.expanduser("~/.claude/commands/intelligent-arch-creator"))
+
+        msg = f"App is running. Auth mode: {data.get('auth_mode', 'unknown')}"
+        if skill_installed or user_skill:
+            msg += "\nSkill: installed (/intelligent-arch-creator available)"
+        else:
+            msg += "\nSkill: NOT installed. Run install_skill() to enable /intelligent-arch-creator slash command."
+        return msg
     except Exception:
         return (
             "ERROR: Arch Viewer app is not running.\n"
@@ -99,6 +110,57 @@ async def get_skill_tree() -> str:
             return json.dumps(resp.json(), indent=2)
     except Exception as e:
         return f"Error fetching skill tree: {e}"
+
+
+@mcp.tool()
+async def install_skill(scope: str = "project") -> str:
+    """Install the intelligent-arch-creator skill so it can be used as a Claude Code slash command.
+
+    Args:
+        scope: Where to install. "project" installs to .claude/commands/ in the current working directory.
+               "user" installs to ~/.claude/commands/ for all projects.
+    """
+    try:
+        async with _client() as client:
+            resp = await client.get("/api/skills/bundle")
+            resp.raise_for_status()
+            bundle = resp.json()
+    except Exception:
+        return (
+            "ERROR: Could not fetch skill from Arch Viewer backend.\n"
+            "Make sure the app is running: docker compose up"
+        )
+
+    skill_name = bundle.get("skill_name", "intelligent-arch-creator")
+    files = bundle.get("files", {})
+
+    if not files:
+        return "ERROR: Skill bundle is empty."
+
+    # Determine install directory
+    if scope == "user":
+        base = os.path.expanduser("~/.claude/commands")
+    else:
+        base = os.path.join(os.getcwd(), ".claude", "commands")
+
+    install_dir = os.path.join(base, skill_name)
+    os.makedirs(install_dir, exist_ok=True)
+
+    installed = []
+    for rel_path, content in files.items():
+        file_path = os.path.join(install_dir, rel_path)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w") as f:
+            f.write(content)
+        installed.append(rel_path)
+
+    scope_label = "user-global (~/.claude/commands/)" if scope == "user" else f"project (.claude/commands/)"
+    return (
+        f"Skill '{skill_name}' installed to {scope_label}\n"
+        f"Files: {', '.join(installed)}\n\n"
+        f"You can now use /intelligent-arch-creator as a slash command.\n"
+        f"Restart Claude Code if it doesn't appear immediately."
+    )
 
 
 if __name__ == "__main__":

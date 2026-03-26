@@ -100,24 +100,49 @@ docker compose up frontend
 cd backend && CLAUDE_AUTH_MODE=cli uvicorn app.main:app --port 8000 --reload
 ```
 
-### 4. Generate your first diagram
+### 4. Install the skill
+
+The `intelligent-arch-creator` skill tells Claude Code how to analyze codebases and generate diagrams. Install it from the running backend (make sure `docker compose up` is running first):
+
+In Claude Code, ask:
+```
+> Use the arch-viewer MCP to install the skill
+```
+
+This calls `install_skill(scope="project")` which fetches the skill files from the backend and writes them to `.claude/commands/intelligent-arch-creator/` in your current project. After installation:
+
+- `/intelligent-arch-creator` becomes available as a slash command
+- Or you can just describe what you want — Claude will follow the skill instructions
+
+To install globally (available in all projects):
+```
+> Use arch-viewer to install the skill with user scope
+```
+
+### 5. Generate your first diagram
 
 Open Claude Code in any project you want to diagram:
 
-```bash
-# Point Claude Code at your project and ask:
-> Analyze this codebase and generate an architecture diagram using the intelligent-arch-creator skill. Push it to the arch viewer.
+```
+> Analyze this codebase and generate an architecture diagram
+```
+
+Or use the slash command directly:
+```
+> /intelligent-arch-creator
 ```
 
 Claude will:
 1. Check the viewer app is running
-2. Scan your project files
-3. Detect the tech stack (Kafka, Redis, PostgreSQL, FastAPI, etc.)
-4. Generate a structured architecture with proper symbols
-5. Push it to the viewer
-6. Give you a URL to open in your browser
+2. Ask you for scan depth (Quick/Standard/Deep)
+3. Scan your project files in priority order
+4. Detect the tech stack (Kafka, Redis, PostgreSQL, FastAPI, etc.)
+5. Load matching subskills for learned patterns
+6. Generate a structured architecture with proper SVG symbols
+7. Push it to the viewer
+8. Give you a URL to open in your browser
 
-### 5. Work with the diagram
+### 6. Work with the diagram
 
 Once the diagram opens at `http://localhost:13000`:
 
