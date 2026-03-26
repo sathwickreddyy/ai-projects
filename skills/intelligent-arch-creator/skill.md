@@ -102,9 +102,28 @@ Read: CLAUDE.md (if exists)
 **Rules:**
 - Read files DIRECTLY by path — don't search/glob first
 - If a file doesn't exist, that's fine — skip it, don't search for alternatives
-- NEVER read from node_modules/, venv/, .git/, __pycache__/, dist/, build/
 - Max 3000 chars per file (first 3000 is enough)
 - Do NOT read symbols.yaml — the quick reference table below has everything you need
+
+**NEVER read, search, or glob into ANY of these directories — they contain zero architectural information:**
+
+| Category | Directories to skip |
+|----------|-------------------|
+| JS/TS deps | `node_modules/`, `.npm/`, `.yarn/`, `.pnpm-store/`, `bower_components/` |
+| Python deps | `venv/`, `.venv/`, `env/`, `.env/`, `site-packages/`, `__pycache__/`, `*.egg-info/`, `.eggs/` |
+| Go deps | `vendor/` (unless no go.mod), `pkg/mod/` |
+| Rust deps | `target/` |
+| Java deps | `.gradle/`, `.m2/`, `build/libs/`, `target/` (Maven) |
+| Build output | `dist/`, `build/`, `out/`, `.next/`, `.nuxt/`, `.output/`, `.vercel/`, `.netlify/` |
+| Version control | `.git/`, `.svn/`, `.hg/` |
+| IDE/editor | `.idea/`, `.vscode/`, `.eclipse/`, `.settings/`, `*.swp`, `*.swo` |
+| Test artifacts | `.pytest_cache/`, `__snapshots__/`, `coverage/`, `.nyc_output/`, `htmlcov/` |
+| OS junk | `.DS_Store`, `Thumbs.db`, `desktop.ini` |
+| Container/infra | `.terraform/`, `.serverless/`, `cdk.out/` |
+| Lock files | `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `Pipfile.lock`, `Cargo.lock`, `go.sum`, `composer.lock` |
+| Generated code | `*.min.js`, `*.min.css`, `*.map`, `*.chunk.js`, `*.bundle.js` |
+
+If you accidentally glob and see paths containing any of these — STOP, ignore those results, and read specific files instead.
 
 **Early stop:** If docker-compose.yml lists all services, ports, images, and env vars clearly, skip P3-P5 and go straight to Step 4.
 
