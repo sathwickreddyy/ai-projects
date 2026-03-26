@@ -40,7 +40,7 @@ async def preview_impact(body: dict):
 async def get_skill_bundle():
     """Return all skill files for installation into .claude/commands/."""
     skill_dir = Path(settings.skills_dir) / "intelligent-arch-creator"
-    if not skill_dir.is_abs():
+    if not skill_dir.is_absolute():
         here = Path(os.path.abspath(__file__))
         project_root = here.parent.parent.parent.parent
         skill_dir = project_root / settings.skills_dir / "intelligent-arch-creator"

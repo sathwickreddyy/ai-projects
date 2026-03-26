@@ -32,77 +32,13 @@ def _find_local_skill() -> str | None:
     return None
 
 
-SKILL_PROCESS_SUMMARY = """
-## How to Generate an Architecture Diagram
-
-Follow these steps IN ORDER:
-
-1. **Ask scan scope** — Present 3 options to user:
-   - Quick (~5K tokens): configs + manifests only
-   - Standard (~15K tokens): + entrypoints + settings (default)
-   - Deep (~30K tokens): + infra code + docs
-
-2. **Scan files in priority order** (stop at scope limit):
-   P0: docker-compose.yml, Dockerfile, k8s/*.yaml, .env.example
-   P1: package.json, requirements.txt, go.mod, Cargo.toml
-   P2: main.py, app.py, index.ts, server.js (entrypoints)
-   P3: Config files with DB URLs, Kafka hosts, Redis connections
-   P4: Kafka producer/consumer code, Redis clients, DB migrations
-   P5: README.md, docs/
-   SKIP: node_modules, .git, __pycache__, venv, tests, lock files
-
-3. **Load subskills** — call get_skill_tree() to check for matching learned patterns
-
-4. **Map detected stack to symbols** (ONLY use these symbol_types):
-   kafka_broker, kafka_topic, redis_cache, redis_pubsub, pubsub_channel,
-   postgres_db, api_service, load_balancer, client_actor, external_service
-
-5. **Assign layers**: 0=clients, 1=APIs/gateways, 2=workers, 3=messaging, 4=databases
-
-6. **Generate edges** with labels:
-   HTTP calls → solid, "HTTP POST →"
-   Kafka produce → animated, "produce →", #ef4444
-   SQL read/write → solid, "SQL read ←", #3b82f6
-   Redis pub/sub → animated, "publish →", #f97316
-   External API → dotted, "API call →", #6b7280
-
-7. **Generate 3 insights** about architectural GAPS (not praise)
-
-8. **Call push_architecture()** with this JSON schema:
-{
-  "context": {
-    "project_name": "string", "project_path": "string",
-    "detected_stack": ["string"], "user_intent": "string",
-    "skill_used": "intelligent-arch-creator", "skill_version": "1.0",
-    "skill_path": "", "conversation_summary": "string",
-    "scan_scope": "quick|standard|deep", "tokens_consumed": 0,
-    "files_scanned": ["string"], "preferences": {}
-  },
-  "architecture": {
-    "title": "string", "mode": "stage_diagram",
-    "default_mode": "stage_diagram", "auto_layout": true,
-    "nodes": [{"id":"string","symbol_type":"string","name":"string",
-      "props":{},"position":{"x":0.5,"y":0.2},"layer":0}],
-    "edges": [{"id":"string","source":"string","source_port":null,
-      "target":"string","target_port":null,"label":"string",
-      "style":"solid|animated|dotted","color":"#hex"}],
-    "flows": [{"id":"string","name":"string","steps":["node_ids"],"color":"#hex"}],
-    "insights": ["gap 1","gap 2","gap 3"]
-  }
-}
-
-Set source_port/target_port to null (viewer auto-assigns).
-Set auto_layout: true (viewer uses ELK.js for positioning).
-""".strip()
-
-
 # ─── Tools ───────────────────────────────────────────────────────────────────
 
 
 @mcp.tool()
 async def check_app_health() -> str:
-    """Check if the Intelligent Arch Viewer app is running and return skill instructions.
-    MUST call this before push_architecture. Returns the process to follow for generating diagrams."""
+    """Check if the Intelligent Arch Viewer app is running and if the skill is installed.
+    MUST call this before generating architecture diagrams."""
     try:
         async with _client() as client:
             resp = await client.get("/health")
@@ -111,21 +47,18 @@ async def check_app_health() -> str:
 
         local_skill = _find_local_skill()
 
-        msg = f"App is running. Auth mode: {data.get('auth_mode', 'unknown')}"
+        msg = f"App: running (auth: {data.get('auth_mode', 'unknown')})"
         if local_skill:
             msg += f"\nSkill: installed at {local_skill}"
-            msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
+            msg += "\nReady to generate. Read skill.md from the installed skill directory for full instructions."
         else:
             msg += (
-                "\n\nACTION REQUIRED: The intelligent-arch-creator skill is NOT installed."
-                "\nAsk the user:"
-                '\n  "The architecture skill needs to be installed. Where should I install it?'
-                "\n  - **Project** — installs to this project only (.claude/commands/)"
-                '\n  - **User** — installs globally for all projects (~/.claude/commands/)"'
-                "\n\nThen call install_skill(scope) with their choice (default: project)."
-                "\nAfter installation, proceed with the architecture generation."
+                "\nSkill: NOT installed."
+                "\n\nAsk the user where to install:"
+                "\n  - Project scope (this project only)"
+                "\n  - User scope (all projects)"
+                "\nThen call install_skill(scope='project' or scope='user')."
             )
-            msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
         return msg
     except Exception:
         return (
