@@ -64,22 +64,40 @@ mcp-server/venv/bin/pip install -r mcp-server/requirements.txt
 
 **Using from this project directory:** The `.claude.json` is already configured. Claude Code picks it up automatically when you open this project.
 
-**Using from ANY other project:** Run this once (uses absolute paths so it works from anywhere):
+**Using from another project directory:** Run this from inside that project (creates a `.mcp.json` local to it):
 
 ```bash
 claude mcp add arch-viewer \
-  --scope user \
+  --scope project \
   --transport stdio \
   -- /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python \
   /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py
 ```
 
-This adds it to your global user config so every Claude Code project can push diagrams.
+Repeat this once per project you want to push diagrams from.
 
 Verify it works (start `docker compose up` first, then in Claude Code):
 
 ```
 > Use the arch-viewer MCP to check if the app is healthy
+```
+
+### Why stdio and not SSE/HTTP transport?
+
+The MCP server runs on your **host machine** (not in Docker) because it's a subprocess of Claude Code. The auth mode determines whether the backend also needs to be on the host:
+
+| Auth mode | Backend location | Why |
+|-----------|-----------------|-----|
+| `cli` (Pro/Max subscription) | **Must run on host** | The `claude` binary is a macOS executable — it can't run inside a Linux container. If backend is in Docker, cli mode fails. |
+| `api` (API key) | Can run in Docker | No dependency on the host `claude` binary. `docker compose up` works normally. |
+
+For `cli` mode: start the backend directly on your machine instead of via Docker:
+```bash
+# Start only the frontend in Docker
+docker compose up frontend
+
+# Run backend on host with your subscription auth
+cd backend && CLAUDE_AUTH_MODE=cli uvicorn app.main:app --port 8000 --reload
 ```
 
 ### 4. Generate your first diagram
