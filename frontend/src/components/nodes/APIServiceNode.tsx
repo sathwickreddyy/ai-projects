@@ -18,8 +18,8 @@ export function APIServiceNode({ data }: NodeProps) {
       className="rounded-lg min-w-[180px] p-3"
       style={{ background: s.fill, border: `2px solid ${s.border}` }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-[#34d399]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#34d399]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#34d399]" />
+      <Handle type="target" position={Position.Left} id="left" className="!bg-[#34d399]" />
 
       <div className="flex items-center gap-2 mb-2">
         {d.step != null && (
@@ -54,8 +54,8 @@ export function APIServiceNode({ data }: NodeProps) {
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-[#34d399]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#34d399]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#34d399]" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[#34d399]" />
     </div>
   )
 }

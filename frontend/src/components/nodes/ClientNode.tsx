@@ -16,8 +16,8 @@ export function ClientNode({ data }: NodeProps) {
       className="rounded-lg min-w-[140px] p-3 text-center"
       style={{ background: '#0f1117', border: `2px solid ${s.border}` }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-[#a78bfa]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#a78bfa]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#a78bfa]" />
+      <Handle type="target" position={Position.Left} id="left" className="!bg-[#a78bfa]" />
 
       <div
         className="w-9 h-9 rounded-full mx-auto mb-2 flex items-center justify-center"
@@ -36,8 +36,8 @@ export function ClientNode({ data }: NodeProps) {
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-[#a78bfa]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#a78bfa]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#a78bfa]" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[#a78bfa]" />
     </div>
   )
 }

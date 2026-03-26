@@ -14,8 +14,8 @@ export function PostgresDBNode({ data }: NodeProps) {
 
   return (
     <div className="min-w-[160px]">
-      <Handle type="target" position={Position.Top} className="!bg-[#60a5fa]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#60a5fa]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#60a5fa]" />
+      <Handle type="target" position={Position.Left} id="left" className="!bg-[#60a5fa]" />
 
       <div
         className="h-[18px] rounded-[50%] -mb-1 relative z-10"
@@ -43,8 +43,8 @@ export function PostgresDBNode({ data }: NodeProps) {
         style={{ background: `${s.accent}20`, border: `2px solid ${s.border}` }}
       />
 
-      <Handle type="source" position={Position.Bottom} className="!bg-[#60a5fa]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#60a5fa]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#60a5fa]" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[#60a5fa]" />
     </div>
   )
 }

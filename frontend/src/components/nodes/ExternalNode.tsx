@@ -16,8 +16,8 @@ export function ExternalNode({ data }: NodeProps) {
       className="rounded-2xl min-w-[140px] p-3 text-center"
       style={{ background: '#0f1117', border: `2px solid ${s.border}` }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-[#9ca3af]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#9ca3af]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#9ca3af]" />
+      <Handle type="target" position={Position.Left} id="left" className="!bg-[#9ca3af]" />
 
       <div className="font-bold text-[13px]" style={{ color: s.text }}>{d.label}</div>
       {d.provider && <div className="text-[10px]" style={{ color: s.border }}>{d.provider}</div>}
@@ -27,8 +27,8 @@ export function ExternalNode({ data }: NodeProps) {
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-[#9ca3af]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#9ca3af]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#9ca3af]" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[#9ca3af]" />
     </div>
   )
 }

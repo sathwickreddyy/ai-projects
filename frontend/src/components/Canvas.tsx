@@ -5,10 +5,13 @@ import {
   Background,
   Controls,
   MiniMap,
+  addEdge,
+  reconnectEdge,
   useNodesState,
   useEdgesState,
   type Node,
   type Edge,
+  type Connection,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -34,32 +37,60 @@ export function Canvas() {
       .catch((err) => setError(err.message))
   }, [sessionId, setNodes, setEdges])
 
-  const onNodeDragStop = useCallback(
-    () => {
-      if (!sessionId) return
-      // Save current state as plain objects for the backend JSONB column
-      const payload = {
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          type: n.type ?? 'api_service',
-          position: n.position,
-          data: n.data,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          ...(e.label ? { label: String(e.label) } : {}),
-          ...(e.animated ? { animated: e.animated } : {}),
-          ...(e.style ? { style: e.style } : {}),
-        })),
-      }
-      patchSession(sessionId, { data: payload }).catch(
-        (err) => console.error('Failed to save positions:', err)
-      )
+  // Create new connection by dragging from handle to handle
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((eds) => addEdge({
+        ...connection,
+        id: `e-${connection.source}-${connection.sourceHandle ?? 'out'}-${connection.target}-${connection.targetHandle ?? 'in'}`,
+      }, eds))
     },
-    [sessionId, nodes, edges]
+    [setEdges]
   )
+
+  // Reconnect an existing edge to a different handle
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds))
+    },
+    [setEdges]
+  )
+
+  // Save state after any drag or connection change
+  const saveState = useCallback(() => {
+    if (!sessionId) return
+    const payload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        type: n.type ?? 'api_service',
+        position: n.position,
+        data: n.data,
+      })),
+      edges: edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        ...(e.sourceHandle ? { sourceHandle: e.sourceHandle } : {}),
+        ...(e.targetHandle ? { targetHandle: e.targetHandle } : {}),
+        ...(e.label ? { label: String(e.label) } : {}),
+        ...(e.animated ? { animated: e.animated } : {}),
+        ...(e.style ? { style: e.style } : {}),
+      })),
+    }
+    patchSession(sessionId, { data: payload }).catch(
+      (err) => console.error('Failed to save:', err)
+    )
+  }, [sessionId, nodes, edges])
+
+  // Save after drag, connect, or reconnect
+  const onNodeDragStop = useCallback(() => saveState(), [saveState])
+
+  // Save after edge changes settle
+  useEffect(() => {
+    if (!sessionId || edges.length === 0) return
+    const timer = setTimeout(saveState, 500)
+    return () => clearTimeout(timer)
+  }, [edges, sessionId, saveState])
 
   if (error) {
     return (
@@ -96,6 +127,8 @@ export function Canvas() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onReconnect={onReconnect}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           fitView

@@ -17,8 +17,8 @@ export function ContainerNode({ data }: NodeProps) {
       className="rounded-lg overflow-hidden min-w-[200px]"
       style={{ background: '#0f1117', border: `2px solid ${s.border}` }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-[#38bdf8]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#38bdf8]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#38bdf8]" />
+      <Handle type="target" position={Position.Left} id="left" className="!bg-[#38bdf8]" />
 
       <div
         className="px-3 py-2 flex items-center gap-2"
@@ -45,8 +45,8 @@ export function ContainerNode({ data }: NodeProps) {
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-[#38bdf8]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#38bdf8]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#38bdf8]" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[#38bdf8]" />
     </div>
   )
 }
