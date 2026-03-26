@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "arch-viewer": {
-      "command": "python",
-      "args": ["mcp-server/server.py"],
+      "command": "/Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python",
+      "args": ["/Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py"],
       "env": {
         "BACKEND_URL": "http://localhost:18000"
       }

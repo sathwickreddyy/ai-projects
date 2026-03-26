@@ -13,3 +13,4 @@ build/
 postgres_data/
 .superpowers/
 *.db
+mcp-server/venv/

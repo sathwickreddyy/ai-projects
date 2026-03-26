@@ -55,18 +55,30 @@ Wait for both services to be ready:
 
 ### 3. Set up the MCP server in Claude Code
 
-The MCP server lets Claude Code push diagrams to the viewer. The project includes a `.claude.json` that configures it automatically.
-
-If you're using Claude Code in this project directory, it should detect the MCP config. Otherwise, add it manually:
+The MCP server needs its own Python venv with the `mcp` package. Run this once from the project root:
 
 ```bash
-claude mcp add arch-viewer --scope project --transport stdio -- python mcp-server/server.py
+python3 -m venv mcp-server/venv
+mcp-server/venv/bin/pip install -r mcp-server/requirements.txt
 ```
 
-Verify it works:
+**Using from this project directory:** The `.claude.json` is already configured. Claude Code picks it up automatically when you open this project.
+
+**Using from ANY other project:** Run this once (uses absolute paths so it works from anywhere):
 
 ```bash
-# In Claude Code, ask:
+claude mcp add arch-viewer \
+  --scope user \
+  --transport stdio \
+  -- /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python \
+  /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py
+```
+
+This adds it to your global user config so every Claude Code project can push diagrams.
+
+Verify it works (start `docker compose up` first, then in Claude Code):
+
+```
 > Use the arch-viewer MCP to check if the app is healthy
 ```
 

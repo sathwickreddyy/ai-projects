@@ -89,6 +89,19 @@ messaging `#ef4444`, database `#3b82f6`, cache `#ef4444`, api `#059669`, infrast
 
 `.claude.json` (project-level) configures the `arch-viewer` MCP server with stdio transport.
 
+**One-time venv setup** (required before MCP works):
+```bash
+python3 -m venv mcp-server/venv
+mcp-server/venv/bin/pip install -r mcp-server/requirements.txt
+```
+
+`.claude.json` uses the absolute path to the venv's Python so the server works from any project directory. To add it globally (accessible from all projects):
+```bash
+claude mcp add arch-viewer --scope user --transport stdio \
+  -- /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/venv/bin/python \
+  /Users/sathwick/my-office/learning-projects/ai-projects/mcp-server/server.py
+```
+
 ## Specs & Plans
 
 - Design spec: `docs/superpowers/specs/2026-03-25-intelligent-arch-viewer-design.md`
