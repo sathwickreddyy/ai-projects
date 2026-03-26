@@ -96,11 +96,18 @@ async def check_app_health() -> str:
         msg = f"App is running. Auth mode: {data.get('auth_mode', 'unknown')}"
         if skill_installed or user_skill:
             msg += "\nSkill: installed (/intelligent-arch-creator available)"
+            msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
         else:
-            msg += "\nSkill: not installed as slash command. Run install_skill() to enable /intelligent-arch-creator."
-            msg += "\n\nHowever, you can still follow these instructions directly:"
-
-        msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
+            msg += (
+                "\n\nACTION REQUIRED: The intelligent-arch-creator skill is NOT installed."
+                "\nAsk the user:"
+                '\n  "The architecture skill needs to be installed. Where should I install it?'
+                "\n  - **Project** — installs to this project only (.claude/commands/)"
+                '\n  - **User** — installs globally for all projects (~/.claude/commands/)"'
+                "\n\nThen call install_skill(scope) with their choice (default: project)."
+                "\nAfter installation, proceed with the architecture generation."
+            )
+            msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
         return msg
     except Exception:
         return (
