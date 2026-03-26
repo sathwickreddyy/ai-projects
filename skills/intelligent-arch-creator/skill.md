@@ -1,101 +1,326 @@
 ---
 name: intelligent-arch-creator
-description: Analyze a project and generate a structured architecture diagram for the Arch Viewer app
+description: Analyze a codebase, detect its technology stack, and generate a structured architecture diagram for the Intelligent Arch Viewer app
+version: "1.0"
 ---
 
-## What You Do
+# Intelligent Architecture Creator
 
-Analyze the user's project files, detect the technology stack, and produce a structured architecture JSON payload following the symbol instruction set. Send it to the Arch Viewer app for interactive visualization.
+You analyze codebases and produce structured architecture diagrams. Your output is a JSON payload that gets pushed to the Arch Viewer app for interactive visualization with proper SVG infrastructure symbols, AI-powered review, and skill learning.
 
-## Prerequisites
+---
 
-The Arch Viewer app must be running. Before doing anything:
-1. Call `check_app_health()` MCP tool
-2. If the app is not running, tell the user: "Please start the Arch Viewer with `docker compose up` and try again."
-3. Do NOT proceed until the app is healthy.
+## Step 1: Check App Health
 
-## Process
+Before anything else, call the MCP tool:
 
-1. **Check app health** — call `check_app_health()` MCP tool
-2. **Scan project files** — identify frameworks, databases, messaging systems, infrastructure
-3. **Check keywords.yaml** — if detected stack matches a subskill's keywords, read that subskill's .md file and apply its learned decisions and patterns
-4. **Read symbols.yaml** — use ONLY symbol_types defined in this file. Each node must have a valid `symbol_type` from the symbols list.
-5. **Generate context envelope JSON** — following the output schema below
-6. **Call MCP tool** — `push_architecture(payload)` sends the JSON to the viewer app
-7. **Return the session URL** — tell the user to open it in their browser
+```
+check_app_health()
+```
 
-## Symbol Instruction Set
+If the app is not running, tell the user:
+> "The Intelligent Arch Viewer app needs to be running. Please start it with `docker compose up` in the arch-viewer project directory, then try again."
 
-Read `symbols.yaml` in this directory for available symbol_types and their props_schema. Only generate symbol_types that exist in this file.
+Do NOT proceed until the app responds healthy.
 
-Available types: kafka_broker, kafka_topic, redis_cache, redis_pubsub, pubsub_channel, postgres_db, api_service, load_balancer, client_actor, external_service.
+---
 
-Each symbol_type has a `props_schema` defining what properties it accepts (e.g., kafka_topic accepts `partitions`, `messages_hint`, `consumer_groups`).
+## Step 2: Ask Scan Scope
 
-## Subskill Loading
+Present three options before reading any project files:
 
-Read `keywords.yaml` in this directory. If detected technologies match keywords for a subskill, read that subskill's .md file from the `subskills/` directory and apply its:
-- **Decisions** (always apply)
-- **Patterns** (suggest when relevant)
-- **Symbol Overrides** (modify default rendering)
+> "I'll analyze this project for an architecture diagram. How deep should I go?
+> - **Quick** (~5K tokens) — reads configs and manifests only. Fast, high-level overview.
+> - **Standard** (~15K tokens) — also reads entrypoints and connection configs. Recommended for most projects.
+> - **Deep** (~30K tokens) — reads infrastructure code and docs too. Most thorough.
+>
+> Which scope?"
 
-## Output Schema (Context Envelope)
+Default to **Standard** if the user doesn't specify or says "just do it".
+
+---
+
+## Step 3: Scan Project Files
+
+Read files in strict priority order. Stop at the scope limit.
+
+| Priority | Scope | What to Read | Examples |
+|----------|-------|-------------|---------|
+| P0 | Quick+ | Docker/infra configs | `docker-compose.yml`, `Dockerfile`, `k8s/*.yaml`, `.env.example` |
+| P1 | Quick+ | Package manifests | `package.json`, `requirements.txt`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle` |
+| P2 | Standard+ | Entrypoints | `main.py`, `app.py`, `index.ts`, `cmd/main.go`, `src/main.rs`, `server.js` |
+| P3 | Standard+ | Config/settings files | Files containing database URLs, Kafka bootstrap servers, Redis hosts, API base URLs |
+| P4 | Deep | Infrastructure client code | Kafka producer/consumer files, Redis client wrappers, DB migration files, queue handlers |
+| P5 | Deep | README/docs | `README.md`, `docs/architecture.md`, `CLAUDE.md` |
+
+**Always skip:** `node_modules/`, `.git/`, `__pycache__/`, `venv/`, `dist/`, `build/`, `vendor/`, `.next/`, test files, generated code, static assets, lock files (`package-lock.json`, `poetry.lock`).
+
+**Read limit:** first 3000 characters per file. If a file is larger, the first 3000 chars is enough.
+
+**Early stop rule:** if after P1 the entire stack is already clear (e.g., docker-compose.yml lists all services, ports, images, and environment variables), skip remaining priorities and go to Step 4. Don't read more files just because the budget allows.
+
+---
+
+## Step 4: Detect Stack & Map to Symbols
+
+From what you scanned, identify each technology and create the correct node. Read `symbols.yaml` in this directory for the full list of available `symbol_type` values and their `props_schema`.
+
+### Detection → Symbol Rules
+
+**Messaging:**
+
+| Detected | symbol_type | How to populate props |
+|----------|------------|----------------------|
+| Kafka/Confluent image in docker-compose, or aiokafka/confluent-kafka in deps | `kafka_broker` | Read topic names from env vars or producer/consumer code. Set `props.topics[]` with partition counts. |
+| Individual Kafka topic referenced in code | `kafka_topic` | Only use if showing topics outside a broker. Usually topics are children inside `kafka_broker`. |
+| Redis with pub/sub usage (subscribe, publish, channel) | `redis_pubsub` | Read channel names from code. Set `props.channels[]`. |
+| RabbitMQ/AMQP in deps or docker-compose | Use `redis_pubsub` shape as closest match | Note in insights that a dedicated RabbitMQ symbol should be added. |
+
+**Databases:**
+
+| Detected | symbol_type | How to populate props |
+|----------|------------|----------------------|
+| PostgreSQL (asyncpg, psycopg2, postgres image) | `postgres_db` | Read table names from migrations, models, or SQL files. Set `props.tables[]`, `props.role`. |
+| Redis with cache usage (get, set, expire, cache) | `redis_cache` | Read key patterns from code. Set `props.key_patterns[]`. |
+| MongoDB, Cassandra, Elasticsearch | Use `postgres_db` as closest cylinder shape | Note in insights that a dedicated symbol should be added. |
+
+**If Redis is used for BOTH caching AND pub/sub:** create two separate nodes — one `redis_cache` and one `redis_pubsub`.
+
+**Services:**
+
+| Detected | symbol_type | How to populate props |
+|----------|------------|----------------------|
+| FastAPI, Flask, Express, Gin, Spring Boot routes | `api_service` | Read route decorators for endpoint list. Set `props.framework`, `props.endpoints[]`. |
+| Nginx, HAProxy, Traefik, ALB in docker-compose | `load_balancer` | Set `props.algorithm` if detectable. |
+| External API calls (Stripe, Twilio, S3, Auth0) | `external_service` | One node per external dependency. Set `props.provider`. |
+| Frontend client, browser, mobile app | `client_actor` | Set `props.type` (browser/mobile/cli/iot). |
+
+**Multiple instances:** if docker-compose has `postgres-primary` and `postgres-replica`, create two `postgres_db` nodes with different `props.role` values.
+
+### Layer Assignment
+
+Assign each node a `layer` value. This expresses architectural intent — the viewer uses it for ELK layout.
+
+```
+Layer 0: client_actor, external_service (entry points / system edges)
+Layer 1: load_balancer, api_service (gateway / API tier)
+Layer 2: worker services, notification services (processing tier)
+Layer 3: kafka_broker, redis_pubsub (messaging tier)
+Layer 4: postgres_db, redis_cache (storage tier)
+```
+
+### Position
+
+Set approximate positions using the layer:
+- `y` = layer * 0.2 (so layer 0 is at top, layer 4 at bottom)
+- `x` = distribute nodes within same layer evenly (e.g., 2 nodes at layer 1 → x=0.33 and x=0.66)
+
+These are rough — set `auto_layout: true` in the output and the viewer's ELK.js engine will reposition everything optimally.
+
+### Props: Always Populate (Smart Zoom)
+
+Even at Quick scope, fill in every prop you can infer. If docker-compose.yml shows `POSTGRES_DB: orders_db`, set `props.tables: ["orders"]`. If a Kafka topic is named `order-events`, infer `props.partitions: 3` as a sensible default.
+
+The viewer decides whether to render internal elements at the current zoom level. Your job is to **gather**, the viewer's job is to **display**.
+
+---
+
+## Step 5: Load Subskills
+
+Read `keywords.yaml` in this directory. For each mapping, check if the detected stack matches:
+
+```yaml
+# keywords.yaml format
+mappings:
+  - subskill: order-processing
+    match_any:
+      - [kafka, order]       # ALL keywords in this group must be in detected stack
+      - [event-driven, order] # OR all keywords in this group
+```
+
+If a subskill matches, read its `.md` file from `subskills/` and apply:
+
+- **Decisions (always apply):** these modify your output directly. E.g., "always include DLQ topic" → add a DLQ topic to the kafka_broker's topics array.
+- **Patterns (suggest when relevant):** include as insights if the pattern applies. E.g., "CQRS" → add insight about read/write separation if only one DB detected.
+- **Symbol Overrides (modify rendering):** apply color or prop overrides. E.g., "write-path edges in #ef4444" → use that color for write-path edges.
+
+**If no subskill matches, that's fine.** Generate the diagram from first principles. Subskills enhance — they don't gate.
+
+---
+
+## Step 6: Generate Edges
+
+For every connection you detected between components, create an edge.
+
+### Edge Rules
+
+| Connection type | style | label format | color |
+|----------------|-------|-------------|-------|
+| HTTP call between services | `solid` | `HTTP GET/POST →` | target's category color |
+| Produce to Kafka | `animated` | `produce →` | `#ef4444` |
+| Consume from Kafka | `animated` | `consume ←` | `#ef4444` |
+| SQL read | `solid` | `SQL read ←` | `#3b82f6` |
+| SQL write | `solid` | `SQL write →` | `#3b82f6` |
+| Redis cache read/write | `solid` | `cache read ←` / `cache write →` | `#ef4444` |
+| Redis publish | `animated` | `publish →` | `#f97316` |
+| Redis subscribe | `animated` | `subscribe ←` | `#f97316` |
+| Client → API | `solid` | `HTTP →` | `#8b5cf6` |
+| External API call | `dotted` | `API call →` | `#6b7280` |
+| gRPC | `solid` | `gRPC →` | target's category color |
+| WebSocket | `animated` | `WS ↔` | `#22c55e` |
+
+### Labeling
+
+- Always include **protocol**: HTTP, SQL, gRPC, Kafka, Redis, WebSocket
+- Always include **direction**: `→` outbound, `←` inbound, `↔` bidirectional
+- `animated` = async messaging, `solid` = synchronous, `dotted` = optional/fallback
+
+### Ports
+
+Set `source_port` and `target_port` to `null`. The viewer auto-assigns optimal ports after ELK layout. Do not guess ports.
+
+### Flows
+
+Group related edges into named flows with distinct colors:
+
+| Flow pattern | Name | Color |
+|-------------|------|-------|
+| API → Kafka → DB write path | "Write Path" | `#ef4444` |
+| API → Cache → DB read path | "Read Path" | `#3b82f6` |
+| Kafka → Service → Redis pub/sub | "Notification Path" | `#f97316` |
+| Client → LB → API | "Client Flow" | `#8b5cf6` |
+
+Only create flows for paths with 3 or more nodes. A single edge doesn't need a flow.
+
+---
+
+## Step 7: Generate Insights
+
+Generate exactly **3 insights**. These seed the Suggestions panel in the viewer.
+
+**Focus on architectural gaps, not praise:**
+- What's missing that a production system would need?
+- What pattern isn't being followed that should be?
+- What single point of failure or scaling bottleneck exists?
+
+**Good insights:**
+- "No DLQ pattern detected — failed Kafka messages will be lost silently"
+- "Single PostgreSQL instance handles both reads and writes — consider a read replica for scale"
+- "No circuit breaker between API and Kafka — broker outage will cascade to API layer"
+- "Redis used for both caching and pub/sub — consider separating for isolation"
+- "No health check endpoints detected — infrastructure monitoring will be blind"
+
+**Bad insights (don't generate these):**
+- "Well-structured microservice architecture" ← praise, not actionable
+- "Consider adding a CDN" ← generic, not specific to what was found
+- "The system uses Kafka for messaging" ← restating what's in the diagram
+
+---
+
+## Step 8: Assemble & Push
+
+Build the context envelope JSON and call the MCP tool:
+
+```
+push_architecture(payload_json_string)
+```
+
+The tool returns a session URL. Tell the user:
+> "Architecture pushed. Open in your browser: {url}"
+
+---
+
+## Output Schema
 
 ```json
 {
   "context": {
-    "project_name": "string — directory/project name",
-    "project_path": "string — absolute path",
-    "detected_stack": ["string array — detected technologies"],
-    "user_intent": "string — what the user asked for",
+    "project_name": "directory name",
+    "project_path": "/absolute/path/to/project",
+    "detected_stack": ["fastapi", "kafka", "redis", "postgres"],
+    "user_intent": "what the user asked for",
     "skill_used": "intelligent-arch-creator",
     "skill_version": "1.0",
-    "skill_path": "string — absolute path to this skill directory",
-    "conversation_summary": "string — brief conversation context",
+    "skill_path": "/absolute/path/to/this/skill/directory",
+    "conversation_summary": "brief context from the conversation",
+    "scan_scope": "quick | standard | deep",
+    "tokens_consumed": 14500,
+    "files_scanned": ["docker-compose.yml", "requirements.txt"],
     "preferences": {}
   },
   "architecture": {
-    "title": "string — diagram title",
-    "mode": "stage_diagram | animated_flow | step_by_step | mental_map",
+    "title": "Project Name — Architecture",
+    "mode": "stage_diagram",
+    "default_mode": "stage_diagram",
+    "auto_layout": true,
     "nodes": [
       {
-        "id": "string — unique node ID",
-        "symbol_type": "string — must match a key in symbols.yaml",
-        "name": "string — display name",
-        "props": {
-          "...symbol-specific props from props_schema"
-        },
-        "position": { "x": 0.0-1.0, "y": 0.0-1.0 },
-        "layer": 0
+        "id": "unique_id",
+        "symbol_type": "must match symbols.yaml",
+        "name": "Display Name",
+        "props": { "...per props_schema" },
+        "position": { "x": 0.5, "y": 0.2 },
+        "layer": 1
       }
     ],
     "edges": [
       {
-        "id": "string — unique edge ID",
-        "source": "string — source node ID",
-        "source_port": "top | top-right | right | bottom | bottom-left | left",
-        "target": "string — target node ID",
-        "target_port": "top | top-right | right | bottom | bottom-left | left",
-        "label": "string — protocol/direction label",
-        "style": "solid | animated | dotted",
-        "color": "string — hex color"
+        "id": "unique_edge_id",
+        "source": "source_node_id",
+        "source_port": null,
+        "target": "target_node_id",
+        "target_port": null,
+        "label": "HTTP POST →",
+        "style": "solid",
+        "color": "#059669"
       }
     ],
     "flows": [
       {
-        "id": "string",
-        "name": "string — flow name",
-        "steps": ["node_id_1", "node_id_2"],
-        "color": "string — hex color"
+        "id": "flow_id",
+        "name": "Write Path",
+        "steps": ["api_1", "kafka_1", "pg_1"],
+        "color": "#ef4444"
       }
+    ],
+    "insights": [
+      "First architectural gap or observation",
+      "Second gap",
+      "Third gap"
     ]
   }
 }
 ```
 
-## Layout Rules
+### Mode Selection (default_mode)
 
-- Positions are 0.0-1.0 fractions. Spread nodes well. Never overlap.
-- layer: 0 = top (client/user-facing), higher = deeper (infra/DB)
-- Label every edge with protocol and direction
-- Fill in symbol-specific props (partitions for Kafka, tables for Postgres, endpoints for API, etc.)
+Pick the default based on user's intent. The user can switch modes in the viewer UI.
+
+| User says | default_mode |
+|-----------|-------------|
+| "analyze this project", "show me the architecture" | `stage_diagram` |
+| "how does a request flow", "trace the order path" | `animated_flow` |
+| "deployment process", "how does it start up" | `step_by_step` |
+| "give me an overview", "what's in this project" | `mental_map` |
+| Anything unclear | `stage_diagram` |
+
+---
+
+## Symbols Reference
+
+Read `symbols.yaml` in this directory for the full specification. Quick reference:
+
+| symbol_type | shape | category | key props |
+|------------|-------|----------|-----------|
+| `kafka_broker` | container_box | messaging | `topics[]` (with name, partitions, color) |
+| `kafka_topic` | horizontal_cylinder | messaging | `partitions`, `messages_hint`, `consumer_groups[]` |
+| `redis_cache` | diamond_stack | cache | `key_patterns[]` |
+| `redis_pubsub` | container_box | messaging | `channels[]` (with name, subscribers, color) |
+| `pubsub_channel` | horizontal_cylinder | messaging | `subscribers` |
+| `postgres_db` | horizontal_cylinder | database | `tables[]`, `role` (primary/replica/standby) |
+| `api_service` | hexagon | api | `framework`, `endpoints[]` |
+| `load_balancer` | rounded_rect | infrastructure | `algorithm` |
+| `client_actor` | circle | client | `type` (browser/mobile/cli/iot) |
+| `external_service` | cloud | external | `provider` |
+
+Only use symbol_types from this list. If a technology has no matching symbol, use the closest shape and note in insights that a dedicated symbol should be added.
