@@ -18,7 +18,7 @@ mcp = FastMCP("arch-viewer")
 
 
 def _client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(base_url=BACKEND_URL, timeout=60.0)
+    return httpx.AsyncClient(base_url=BACKEND_URL, timeout=60.0, follow_redirects=True)
 
 
 def _find_local_skill() -> str | None:
@@ -279,13 +279,14 @@ async def install_skill(scope: str = "project") -> str:
     """
     try:
         async with _client() as client:
-            resp = await client.get("/api/skills/bundle/")
+            resp = await client.get("/api/skills/bundle")
             resp.raise_for_status()
             bundle = resp.json()
-    except Exception:
+    except Exception as e:
         return (
-            "ERROR: Could not fetch skill from Arch Viewer backend.\n"
-            "Make sure the app is running: docker compose up"
+            f"ERROR: Could not fetch skill from Arch Viewer backend.\n"
+            f"Detail: {e}\n"
+            f"Make sure the app is running: docker compose up"
         )
 
     skill_name = bundle.get("skill_name", SKILL_NAME)
