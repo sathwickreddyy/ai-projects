@@ -1,3 +1,4 @@
+import { Routes, Route } from 'react-router-dom'
 import { useAppStore } from './stores/appStore'
 import { AuthGate } from './components/auth/AuthGate'
 import { AppShell } from './components/layout/AppShell'
@@ -9,5 +10,10 @@ export default function App() {
     return <AuthGate />
   }
 
-  return <AppShell />
+  return (
+    <Routes>
+      <Route path="/session/:sessionId" element={<AppShell />} />
+      <Route path="*" element={<AppShell />} />
+    </Routes>
+  )
 }

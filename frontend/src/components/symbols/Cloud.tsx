@@ -5,7 +5,6 @@ export function Cloud({
   props,
   color,
   borderColor,
-  bgColor,
   width = 140,
   height = 90,
   selected,
@@ -30,16 +29,13 @@ export function Cloud({
 
   return (
     <g>
-      {/* Cloud shape */}
       <path
         d={cloudPath}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
-
-      {/* Name text */}
       <text
         x={centerX}
         y={provider ? centerY - 4 : centerY}
@@ -49,10 +45,8 @@ export function Cloud({
         textAnchor="middle"
         dominantBaseline="middle"
       >
-        {name.length > 12 ? name.slice(0, 12) + '...' : name}
+        {name.length > 14 ? name.slice(0, 14) + '...' : name}
       </text>
-
-      {/* Provider subtitle */}
       {provider && (
         <text
           x={centerX}
@@ -60,23 +54,11 @@ export function Cloud({
           fill={color}
           fontSize={9}
           textAnchor="middle"
-          opacity={0.7}
+          opacity={0.8}
         >
           {provider}
         </text>
       )}
-
-      {/* Name label below */}
-      <text
-        x={centerX}
-        y={height + 18}
-        fill="#e2e8f0"
-        fontSize={12}
-        fontWeight={500}
-        textAnchor="middle"
-      >
-        {name}
-      </text>
     </g>
   )
 }

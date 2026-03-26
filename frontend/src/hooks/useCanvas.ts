@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useAppStore } from '../stores/appStore'
+import { useSymbolRegistry } from '../stores/symbolRegistry'
+import { NODE_SIZES, DEFAULT_NODE_SIZE } from '../lib/nodeSizes'
 
 const CANVAS_W = 1200
 const CANVAS_H = 700
@@ -15,6 +17,7 @@ interface CanvasHook {
     onMouseUp: (e: React.MouseEvent<SVGSVGElement>) => void
   }
   screenToCanvas: (screenX: number, screenY: number, svgElement: SVGSVGElement) => { x: number; y: number }
+  fitToContent: () => void
 }
 
 export function useCanvas(): CanvasHook {
@@ -27,7 +30,6 @@ export function useCanvas(): CanvasHook {
   const panStartRef = useRef<{ x: number; y: number } | null>(null)
 
   // Compute viewBox from zoom and pan
-  // The viewBox defines what portion of the canvas coordinate space is visible
   const width = CANVAS_W / zoom
   const height = CANVAS_H / zoom
   const x = pan.x
@@ -49,7 +51,6 @@ export function useCanvas(): CanvasHook {
   // Handle pan with middle-click or ctrl+drag
   const onMouseDown = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      // Middle mouse button or ctrl+left click
       if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
         e.preventDefault()
         setIsPanning(true)
@@ -64,8 +65,6 @@ export function useCanvas(): CanvasHook {
       if (isPanning && panStartRef.current) {
         const dx = e.clientX - panStartRef.current.x
         const dy = e.clientY - panStartRef.current.y
-
-        // Convert screen pixels to canvas units (considering zoom)
         const canvasDx = dx / zoom
         const canvasDy = dy / zoom
 
@@ -101,6 +100,47 @@ export function useCanvas(): CanvasHook {
     []
   )
 
+  // Fit viewport to frame all nodes with padding
+  const fitToContent = useCallback(() => {
+    const nodes = useAppStore.getState().nodes
+    if (nodes.length === 0) return
+
+    const registry = useSymbolRegistry.getState()
+    const PAD = 80
+
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+
+    for (const node of nodes) {
+      const sym = registry.getSymbol(node.symbol_type)
+      const shape = sym?.shape ?? 'rounded_rect'
+      const size = NODE_SIZES[shape] ?? DEFAULT_NODE_SIZE
+
+      const px = node.position.x * CANVAS_W
+      const py = node.position.y * CANVAS_H
+
+      minX = Math.min(minX, px)
+      minY = Math.min(minY, py)
+      maxX = Math.max(maxX, px + size.width)
+      maxY = Math.max(maxY, py + size.height + 24) // +24 for text label
+    }
+
+    const contentW = maxX - minX + PAD * 2
+    const contentH = maxY - minY + PAD * 2
+
+    // Zoom to fit: viewBox width = CANVAS_W / zoom, so zoom = CANVAS_W / desiredWidth
+    const fitZoom = Math.min(CANVAS_W / contentW, CANVAS_H / contentH)
+    const clampedZoom = Math.max(0.2, Math.min(3, fitZoom))
+
+    setPan({
+      x: minX - PAD,
+      y: minY - PAD,
+    })
+    setZoom(clampedZoom)
+  }, [setZoom, setPan])
+
   return {
     zoom,
     pan,
@@ -112,6 +152,7 @@ export function useCanvas(): CanvasHook {
       onMouseUp,
     },
     screenToCanvas,
+    fitToContent,
   }
 }
 

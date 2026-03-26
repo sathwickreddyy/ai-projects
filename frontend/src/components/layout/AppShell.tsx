@@ -1,3 +1,9 @@
+import { useEffect, useRef } from 'react'
+import { useParams } from 'react-router-dom'
+import { useSession } from '../../hooks/useSession'
+import { useLayout } from '../../hooks/useLayout'
+import { useCanvas } from '../../hooks/useCanvas'
+import { useAppStore } from '../../stores/appStore'
 import { TopBar } from './TopBar'
 import { StatusBar } from './StatusBar'
 import { ComponentPalette } from '../palette/ComponentPalette'
@@ -5,6 +11,30 @@ import { Canvas } from '../canvas/Canvas'
 import { ReviewModal } from '../review/ReviewModal'
 
 export function AppShell() {
+  const { sessionId } = useParams<{ sessionId: string }>()
+  const { loadSession } = useSession()
+  const { autoArrange } = useLayout()
+  const { fitToContent } = useCanvas()
+  const nodes = useAppStore((s) => s.nodes)
+  const arrangedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (sessionId) {
+      loadSession(sessionId)
+    }
+  }, [sessionId])
+
+  // Auto-arrange and fit viewport after nodes load for a new session
+  useEffect(() => {
+    if (nodes.length > 0 && sessionId && arrangedRef.current !== sessionId) {
+      arrangedRef.current = sessionId
+      autoArrange().then(() => {
+        // Small delay for store to update after ELK layout
+        setTimeout(fitToContent, 50)
+      })
+    }
+  }, [nodes.length, sessionId])
+
   return (
     <>
       <div

@@ -17,7 +17,6 @@ export function HorizontalCylinder({
   props,
   color,
   borderColor,
-  bgColor,
   width = 160,
   height = 50,
   selected,
@@ -34,23 +33,22 @@ export function HorizontalCylinder({
 
   return (
     <g>
-      {/* Main cylinder body */}
       <ellipse
         cx={capRadius}
         cy={height / 2}
         rx={capRadius}
         ry={height / 2}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
       <rect
         x={bodyX}
         y={0}
         width={bodyWidth}
         height={height}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke="none"
       />
@@ -59,19 +57,18 @@ export function HorizontalCylinder({
         cy={height / 2}
         rx={capRadius}
         ry={height / 2}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
-      {/* Top and bottom edges */}
       <line
         x1={bodyX}
         y1={0}
         x2={width - capRadius}
         y2={0}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
       <line
         x1={bodyX}
@@ -79,7 +76,7 @@ export function HorizontalCylinder({
         x2={width - capRadius}
         y2={height}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
 
       {/* Internal elements */}

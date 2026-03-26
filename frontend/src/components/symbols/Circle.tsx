@@ -5,7 +5,6 @@ export function Circle({
   props,
   color,
   borderColor,
-  bgColor,
   width = 80,
   height = 80,
   selected,
@@ -18,18 +17,15 @@ export function Circle({
 
   return (
     <g>
-      {/* Circle shape */}
       <circle
         cx={centerX}
         cy={centerY}
         r={radius}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
-
-      {/* Name text */}
       <text
         x={centerX}
         y={clientType ? centerY - 6 : centerY}
@@ -39,10 +35,8 @@ export function Circle({
         textAnchor="middle"
         dominantBaseline="middle"
       >
-        {name.length > 10 ? name.slice(0, 10) + '...' : name}
+        {name.length > 12 ? name.slice(0, 12) + '...' : name}
       </text>
-
-      {/* Type label (browser, mobile, cli, iot) */}
       {clientType && (
         <text
           x={centerX}
@@ -50,23 +44,11 @@ export function Circle({
           fill={color}
           fontSize={9}
           textAnchor="middle"
-          opacity={0.7}
+          opacity={0.8}
         >
           {clientType}
         </text>
       )}
-
-      {/* Name label below */}
-      <text
-        x={centerX}
-        y={height + 18}
-        fill="#e2e8f0"
-        fontSize={12}
-        fontWeight={500}
-        textAnchor="middle"
-      >
-        {name}
-      </text>
     </g>
   )
 }

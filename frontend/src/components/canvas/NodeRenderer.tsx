@@ -3,17 +3,7 @@ import { useAppStore } from '../../stores/appStore'
 import { useSymbolRegistry } from '../../stores/symbolRegistry'
 import { getShapeComponent } from '../symbols'
 import { CANVAS_W, CANVAS_H } from '../../hooks/useCanvas'
-
-// Default sizes based on shape
-const DEFAULT_SIZES: Record<string, { width: number; height: number }> = {
-  horizontal_cylinder: { width: 160, height: 50 },
-  container_box: { width: 200, height: 120 },
-  diamond_stack: { width: 120, height: 100 },
-  hexagon: { width: 140, height: 80 },
-  rounded_rect: { width: 130, height: 60 },
-  circle: { width: 80, height: 80 },
-  cloud: { width: 140, height: 90 },
-}
+import { NODE_SIZES, DEFAULT_NODE_SIZE } from '../../lib/nodeSizes'
 
 interface DragState {
   nodeId: string
@@ -98,7 +88,7 @@ export function NodeRenderer() {
         if (!renderableSymbol) return null
 
         const ShapeComponent = getShapeComponent(renderableSymbol.shape)
-        const defaultSize = DEFAULT_SIZES[renderableSymbol.shape] || { width: 130, height: 60 }
+        const defaultSize = NODE_SIZES[renderableSymbol.shape] || DEFAULT_NODE_SIZE
 
         // Convert fractional position to pixel position
         const px = node.position.x * CANVAS_W

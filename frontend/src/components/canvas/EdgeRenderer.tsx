@@ -1,6 +1,8 @@
 import React from 'react'
 import { useAppStore } from '../../stores/appStore'
+import { useSymbolRegistry } from '../../stores/symbolRegistry'
 import { CANVAS_W, CANVAS_H } from '../../hooks/useCanvas'
+import { NODE_SIZES, DEFAULT_NODE_SIZE } from '../../lib/nodeSizes'
 import type { ArchNode } from '../../types'
 
 type PortPosition = 'top' | 'top-right' | 'right' | 'bottom' | 'bottom-left' | 'left'
@@ -10,15 +12,11 @@ interface PortCoords {
   y: number
 }
 
-// Default node dimensions for port calculation
-const DEFAULT_NODE_WIDTH = 130
-const DEFAULT_NODE_HEIGHT = 60
-
 function getPortPosition(
   node: ArchNode,
   port: PortPosition | undefined,
-  width: number = DEFAULT_NODE_WIDTH,
-  height: number = DEFAULT_NODE_HEIGHT
+  width: number = DEFAULT_NODE_SIZE.width,
+  height: number = DEFAULT_NODE_SIZE.height
 ): PortCoords {
   const px = node.position.x * CANVAS_W
   const py = node.position.y * CANVAS_H
@@ -101,6 +99,13 @@ function createPath(start: PortCoords, end: PortCoords): string {
   return `M ${start.x},${start.y} C ${cpx1},${cpy1} ${cpx2},${cpy2} ${end.x},${end.y}`
 }
 
+function getNodeSize(node: ArchNode): { width: number; height: number } {
+  const registry = useSymbolRegistry.getState()
+  const sym = registry.getSymbol(node.symbol_type)
+  const shape = sym?.shape ?? 'rounded_rect'
+  return NODE_SIZES[shape] ?? DEFAULT_NODE_SIZE
+}
+
 export function EdgeRenderer() {
   const nodes = useAppStore((s) => s.nodes)
   const edges = useAppStore((s) => s.edges)
@@ -127,6 +132,9 @@ export function EdgeRenderer() {
 
         if (!sourceNode || !targetNode) return null
 
+        const sourceSize = getNodeSize(sourceNode)
+        const targetSize = getNodeSize(targetNode)
+
         // Get edge props for port specification
         const sourcePort = (edge.props as any)?.source_port as PortPosition | undefined
         const targetPort = (edge.props as any)?.target_port as PortPosition | undefined
@@ -137,8 +145,8 @@ export function EdgeRenderer() {
           targetNode
         )
 
-        const startPos = getPortPosition(sourceNode, sourcePort || autoSourcePort)
-        const endPos = getPortPosition(targetNode, targetPort || autoTargetPort)
+        const startPos = getPortPosition(sourceNode, sourcePort || autoSourcePort, sourceSize.width, sourceSize.height)
+        const endPos = getPortPosition(targetNode, targetPort || autoTargetPort, targetSize.width, targetSize.height)
 
         const pathData = createPath(startPos, endPos)
 
@@ -187,33 +195,20 @@ export function EdgeRenderer() {
               {animation}
             </path>
 
-            {/* Label */}
             {edge.label && (
-              <g transform={`translate(${midX}, ${midY})`}>
-                {/* Background rect */}
-                <rect
-                  x="-30"
-                  y="-10"
-                  width="60"
-                  height="20"
-                  fill="#161b27"
-                  stroke={edgeColor}
-                  strokeWidth="1"
-                  rx="4"
-                />
-                {/* Label text */}
-                <text
-                  x="0"
-                  y="0"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill="#e2e8f0"
-                  fontSize="12"
-                  fontFamily="system-ui, -apple-system, sans-serif"
-                >
-                  {edge.label}
-                </text>
-              </g>
+              <text
+                x={midX}
+                y={midY - 6}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={edgeColor}
+                fontSize="10"
+                fontWeight={500}
+                fontFamily="system-ui, -apple-system, sans-serif"
+                opacity={0.85}
+              >
+                {edge.label.length > 30 ? edge.label.slice(0, 30) + '...' : edge.label}
+              </text>
             )}
           </g>
         )

@@ -6,7 +6,6 @@ export function DiamondStack({
   props,
   color,
   borderColor,
-  bgColor,
   width = 120,
   height = 100,
   selected,
@@ -43,31 +42,28 @@ export function DiamondStack({
 
   return (
     <g>
-      {/* Back diamonds for 3D depth */}
       <polygon
         points={backDiamond2}
-        fill={bgColor}
-        fillOpacity={0.08}
+        fill={borderColor}
+        fillOpacity={0.06}
         stroke={borderColor}
         strokeWidth={1}
-        strokeOpacity={0.3}
+        strokeOpacity={0.4}
       />
       <polygon
         points={backDiamond1}
-        fill={bgColor}
-        fillOpacity={0.12}
+        fill={borderColor}
+        fillOpacity={0.1}
         stroke={borderColor}
         strokeWidth={1}
-        strokeOpacity={0.5}
+        strokeOpacity={0.6}
       />
-
-      {/* Main diamond */}
       <polygon
         points={mainDiamond}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
 
       {/* Connection lines for 3D effect */}

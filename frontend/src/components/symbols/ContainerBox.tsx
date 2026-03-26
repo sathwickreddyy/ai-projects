@@ -5,7 +5,6 @@ export function ContainerBox({
   props,
   color,
   borderColor,
-  bgColor,
   width = 200,
   height,
   selected,
@@ -20,20 +19,17 @@ export function ContainerBox({
 
   return (
     <g>
-      {/* Container box */}
       <rect
         x={0}
         y={0}
         width={width}
         height={totalHeight}
         rx={8}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.1}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
-
-      {/* Header bar */}
       <rect
         x={0}
         y={0}
@@ -41,7 +37,7 @@ export function ContainerBox({
         height={headerHeight}
         rx={8}
         fill={color}
-        fillOpacity={0.2}
+        fillOpacity={0.35}
       />
       <line
         x1={0}

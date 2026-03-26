@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../stores/appStore'
 import { useLayout } from '../../hooks/useLayout'
 
@@ -12,11 +13,11 @@ const STACK_COLORS: Record<string, string> = {
 }
 
 export function TopBar() {
+  const navigate = useNavigate()
   const currentSession = useAppStore((s) => s.currentSession)
   const currentDiagram = useAppStore((s) => s.currentDiagram)
   const sessions = useAppStore((s) => s.sessions)
   const authMode = useAppStore((s) => s.authMode)
-  const setCurrentSession = useAppStore((s) => s.setCurrentSession)
   const setIsReviewing = useAppStore((s) => s.setIsReviewing)
   const { autoArrange } = useLayout()
 
@@ -25,10 +26,8 @@ export function TopBar() {
 
   const handleSessionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sessionId = e.target.value
-    const session = sessions.find((s) => s.id === sessionId)
-    if (session) {
-      setCurrentSession(session)
-      // TODO: Load diagram for this session
+    if (sessionId) {
+      navigate(`/session/${sessionId}`)
     }
   }
 

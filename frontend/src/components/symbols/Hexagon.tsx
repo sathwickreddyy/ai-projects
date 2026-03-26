@@ -6,7 +6,6 @@ export function Hexagon({
   props,
   color,
   borderColor,
-  bgColor,
   width = 140,
   height = 80,
   selected,
@@ -31,16 +30,13 @@ export function Hexagon({
 
   return (
     <g>
-      {/* Hexagon shape */}
       <polygon
         points={hexPoints}
-        fill={bgColor}
+        fill={borderColor}
         fillOpacity={0.15}
         stroke={borderColor}
-        strokeWidth={selected ? 2.5 : 1.5}
+        strokeWidth={selected ? 3 : 2}
       />
-
-      {/* Name text */}
       <text
         x={centerX}
         y={framework ? centerY - 8 : centerY}
@@ -50,10 +46,8 @@ export function Hexagon({
         textAnchor="middle"
         dominantBaseline="middle"
       >
-        {name.length > 12 ? name.slice(0, 12) + '...' : name}
+        {name.length > 14 ? name.slice(0, 14) + '...' : name}
       </text>
-
-      {/* Framework subtitle */}
       {framework && (
         <text
           x={centerX}
@@ -61,13 +55,11 @@ export function Hexagon({
           fill={color}
           fontSize={10}
           textAnchor="middle"
-          opacity={0.8}
+          opacity={0.9}
         >
           {framework}
         </text>
       )}
-
-      {/* Endpoint list (if space allows) */}
       {endpoints && endpoints.length > 0 && !framework && (
         <EndpointText
           endpoints={endpoints}
@@ -76,18 +68,6 @@ export function Hexagon({
           color={color}
         />
       )}
-
-      {/* Name label below */}
-      <text
-        x={centerX}
-        y={height + 18}
-        fill="#e2e8f0"
-        fontSize={12}
-        fontWeight={500}
-        textAnchor="middle"
-      >
-        {name}
-      </text>
     </g>
   )
 }
