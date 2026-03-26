@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   ReactFlow,
@@ -9,6 +9,8 @@ import {
   reconnectEdge,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  ReactFlowProvider,
   type Node,
   type Edge,
   type Connection,
@@ -16,28 +18,28 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import { nodeTypes } from './nodes'
+import { Palette } from './Palette'
 import { getSession, patchSession } from '../api'
 import type { ArchSession } from '../types'
 
-export function Canvas() {
+function CanvasInner() {
   const { sessionId } = useParams<{ sessionId: string }>()
-  const [session, setSession] = useState<ArchSession | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const { screenToFlowPosition } = useReactFlow()
 
   useEffect(() => {
     if (!sessionId) return
     getSession(sessionId)
       .then((data) => {
-        setSession(data)
         setNodes(data.data.nodes as Node[])
         setEdges(data.data.edges as Edge[])
       })
       .catch((err) => setError(err.message))
   }, [sessionId, setNodes, setEdges])
 
-  // Create new connection by dragging from handle to handle
   const onConnect = useCallback(
     (connection: Connection) => {
       setEdges((eds) => addEdge({
@@ -48,7 +50,6 @@ export function Canvas() {
     [setEdges]
   )
 
-  // Reconnect an existing edge to a different handle
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
       setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds))
@@ -56,7 +57,39 @@ export function Canvas() {
     [setEdges]
   )
 
-  // Save state after any drag or connection change
+  // Drop from palette
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      const type = event.dataTransfer.getData('application/arch-node-type')
+      if (!type) return
+
+      const dataStr = event.dataTransfer.getData('application/arch-node-data')
+      const data = dataStr ? JSON.parse(dataStr) : { label: type }
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      })
+
+      const newNode: Node = {
+        id: `node-${Date.now()}`,
+        type,
+        position,
+        data,
+      }
+
+      setNodes((nds) => [...nds, newNode])
+    },
+    [screenToFlowPosition, setNodes]
+  )
+
+  // Save state
   const saveState = useCallback(() => {
     if (!sessionId) return
     const payload = {
@@ -82,10 +115,9 @@ export function Canvas() {
     )
   }, [sessionId, nodes, edges])
 
-  // Save after drag, connect, or reconnect
   const onNodeDragStop = useCallback(() => saveState(), [saveState])
 
-  // Save after edge changes settle
+  // Debounced save on edge changes
   useEffect(() => {
     if (!sessionId || edges.length === 0) return
     const timer = setTimeout(saveState, 500)
@@ -94,11 +126,60 @@ export function Canvas() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0a0a0f]">
+      <div className="flex items-center justify-center h-full bg-[#0a0a0f]">
         <p className="text-red-400">Error: {error}</p>
       </div>
     )
   }
+
+  return (
+    <div className="flex h-[calc(100vh-48px)]">
+      <Palette />
+      <div className="flex-1" ref={reactFlowWrapper}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onReconnect={onReconnect}
+          onNodeDragStop={onNodeDragStop}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          deleteKeyCode={['Backspace', 'Delete']}
+          defaultEdgeOptions={{
+            style: { stroke: '#4b5563', strokeWidth: 2 },
+            type: 'smoothstep',
+          }}
+          style={{ background: '#0a0a0f' }}
+        >
+          <Background color="#1e2430" gap={20} />
+          <Controls
+            style={{ background: '#161b27', border: '1px solid #1e2430', borderRadius: 8 }}
+          />
+          <MiniMap
+            style={{ background: '#161b27', border: '1px solid #1e2430' }}
+            nodeColor="#1e2430"
+            maskColor="rgba(0,0,0,0.5)"
+          />
+        </ReactFlow>
+      </div>
+    </div>
+  )
+}
+
+export function Canvas() {
+  const { sessionId } = useParams<{ sessionId: string }>()
+  const [session, setSession] = useState<ArchSession | null>(null)
+
+  // Load session title for top bar
+  useEffect(() => {
+    if (!sessionId) return
+    getSession(sessionId).then(setSession).catch(() => {})
+  }, [sessionId])
 
   return (
     <div className="h-screen w-screen bg-[#0a0a0f]">
@@ -121,35 +202,9 @@ export function Canvas() {
         )}
       </div>
 
-      <div className="h-[calc(100vh-48px)]">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onReconnect={onReconnect}
-          onNodeDragStop={onNodeDragStop}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          defaultEdgeOptions={{
-            style: { stroke: '#4b5563', strokeWidth: 2 },
-            type: 'smoothstep',
-          }}
-          style={{ background: '#0a0a0f' }}
-        >
-          <Background color="#1e2430" gap={20} />
-          <Controls
-            style={{ background: '#161b27', border: '1px solid #1e2430', borderRadius: 8 }}
-          />
-          <MiniMap
-            style={{ background: '#161b27', border: '1px solid #1e2430' }}
-            nodeColor="#1e2430"
-            maskColor="rgba(0,0,0,0.5)"
-          />
-        </ReactFlow>
-      </div>
+      <ReactFlowProvider>
+        <CanvasInner />
+      </ReactFlowProvider>
     </div>
   )
 }
