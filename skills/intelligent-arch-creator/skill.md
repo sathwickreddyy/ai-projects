@@ -127,10 +127,18 @@ The viewer decides whether to render internal elements at the current zoom level
 
 ## Step 5: Load Subskills
 
-Read `keywords.yaml` in this directory. For each mapping, check if the detected stack matches:
+Call the MCP tool to get the latest skill tree from your **local** installed skill:
+
+```
+get_skill_tree()
+```
+
+This reads your project's `.claude/commands/intelligent-arch-creator/` directory and returns the current keywords mappings and all subskill content. The local skill evolves over time — each time you approve an adaptation in the viewer, it writes new subskills and keyword mappings here.
+
+For each mapping in the response, check if the detected stack matches:
 
 ```yaml
-# keywords.yaml format
+# keywords format in the response
 mappings:
   - subskill: order-processing
     match_any:
@@ -138,7 +146,7 @@ mappings:
       - [event-driven, order] # OR all keywords in this group
 ```
 
-If a subskill matches, read its `.md` file from `subskills/` and apply:
+If a subskill matches, apply its content:
 
 - **Decisions (always apply):** these modify your output directly. E.g., "always include DLQ topic" → add a DLQ topic to the kafka_broker's topics array.
 - **Patterns (suggest when relevant):** include as insights if the pattern applies. E.g., "CQRS" → add insight about read/write separation if only one DB detected.
