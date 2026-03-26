@@ -17,17 +17,79 @@ def _client() -> httpx.AsyncClient:
     return httpx.AsyncClient(base_url=BACKEND_URL, timeout=60.0)
 
 
+SKILL_PROCESS_SUMMARY = """
+## How to Generate an Architecture Diagram
+
+Follow these steps IN ORDER:
+
+1. **Ask scan scope** — Present 3 options to user:
+   - Quick (~5K tokens): configs + manifests only
+   - Standard (~15K tokens): + entrypoints + settings (default)
+   - Deep (~30K tokens): + infra code + docs
+
+2. **Scan files in priority order** (stop at scope limit):
+   P0: docker-compose.yml, Dockerfile, k8s/*.yaml, .env.example
+   P1: package.json, requirements.txt, go.mod, Cargo.toml
+   P2: main.py, app.py, index.ts, server.js (entrypoints)
+   P3: Config files with DB URLs, Kafka hosts, Redis connections
+   P4: Kafka producer/consumer code, Redis clients, DB migrations
+   P5: README.md, docs/
+   SKIP: node_modules, .git, __pycache__, venv, tests, lock files
+
+3. **Map detected stack to symbols** (ONLY use these symbol_types):
+   kafka_broker, kafka_topic, redis_cache, redis_pubsub, pubsub_channel,
+   postgres_db, api_service, load_balancer, client_actor, external_service
+
+4. **Assign layers**: 0=clients, 1=APIs/gateways, 2=workers, 3=messaging, 4=databases
+
+5. **Generate edges** with labels:
+   HTTP calls → solid, "HTTP POST →"
+   Kafka produce → animated, "produce →", #ef4444
+   SQL read/write → solid, "SQL read ←", #3b82f6
+   Redis pub/sub → animated, "publish →", #f97316
+   External API → dotted, "API call →", #6b7280
+
+6. **Generate 3 insights** about architectural GAPS (not praise)
+
+7. **Call push_architecture()** with this JSON schema:
+{
+  "context": {
+    "project_name": "string", "project_path": "string",
+    "detected_stack": ["string"], "user_intent": "string",
+    "skill_used": "intelligent-arch-creator", "skill_version": "1.0",
+    "skill_path": "", "conversation_summary": "string",
+    "scan_scope": "quick|standard|deep", "tokens_consumed": 0,
+    "files_scanned": ["string"], "preferences": {}
+  },
+  "architecture": {
+    "title": "string", "mode": "stage_diagram",
+    "default_mode": "stage_diagram", "auto_layout": true,
+    "nodes": [{"id":"string","symbol_type":"string","name":"string",
+      "props":{},"position":{"x":0.5,"y":0.2},"layer":0}],
+    "edges": [{"id":"string","source":"string","source_port":null,
+      "target":"string","target_port":null,"label":"string",
+      "style":"solid|animated|dotted","color":"#hex"}],
+    "flows": [{"id":"string","name":"string","steps":["node_ids"],"color":"#hex"}],
+    "insights": ["gap 1","gap 2","gap 3"]
+  }
+}
+
+Set source_port/target_port to null (viewer auto-assigns).
+Set auto_layout: true (viewer uses ELK.js for positioning).
+""".strip()
+
+
 @mcp.tool()
 async def check_app_health() -> str:
-    """Check if the Intelligent Arch Viewer app is running. MUST call this before push_architecture.
-    Also checks if the skill is installed locally."""
+    """Check if the Intelligent Arch Viewer app is running and return skill instructions.
+    MUST call this before push_architecture. Returns the process to follow for generating diagrams."""
     try:
         async with _client() as client:
             resp = await client.get("/health")
             resp.raise_for_status()
             data = resp.json()
 
-        # Check if skill is installed in current project
+        # Check if skill is installed locally
         skill_installed = os.path.isdir(os.path.join(os.getcwd(), ".claude", "commands", "intelligent-arch-creator"))
         user_skill = os.path.isdir(os.path.expanduser("~/.claude/commands/intelligent-arch-creator"))
 
@@ -35,7 +97,10 @@ async def check_app_health() -> str:
         if skill_installed or user_skill:
             msg += "\nSkill: installed (/intelligent-arch-creator available)"
         else:
-            msg += "\nSkill: NOT installed. Run install_skill() to enable /intelligent-arch-creator slash command."
+            msg += "\nSkill: not installed as slash command. Run install_skill() to enable /intelligent-arch-creator."
+            msg += "\n\nHowever, you can still follow these instructions directly:"
+
+        msg += f"\n\n{SKILL_PROCESS_SUMMARY}"
         return msg
     except Exception:
         return (
@@ -54,7 +119,7 @@ async def push_architecture(payload: str) -> str:
     """
     try:
         async with _client() as client:
-            resp = await client.post("/api/sessions", json=json.loads(payload))
+            resp = await client.post("/api/sessions/", json=json.loads(payload))
             resp.raise_for_status()
             data = resp.json()
             return f"Architecture pushed successfully.\nOpen in browser: http://localhost:13000/session/{data['id']}\nSession ID: {data['id']}"
@@ -85,7 +150,7 @@ async def list_sessions() -> str:
     """List all architecture sessions with their status."""
     try:
         async with _client() as client:
-            resp = await client.get("/api/sessions")
+            resp = await client.get("/api/sessions/")
             resp.raise_for_status()
             sessions = resp.json()
             if not sessions:
@@ -105,7 +170,7 @@ async def get_skill_tree() -> str:
     """Show the current intelligent-arch-creator skill structure with subskills and keywords."""
     try:
         async with _client() as client:
-            resp = await client.get("/api/skills/tree")
+            resp = await client.get("/api/skills/tree/")
             resp.raise_for_status()
             return json.dumps(resp.json(), indent=2)
     except Exception as e:
@@ -122,7 +187,7 @@ async def install_skill(scope: str = "project") -> str:
     """
     try:
         async with _client() as client:
-            resp = await client.get("/api/skills/bundle")
+            resp = await client.get("/api/skills/bundle/")
             resp.raise_for_status()
             bundle = resp.json()
     except Exception:
